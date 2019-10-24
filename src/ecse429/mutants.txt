@@ -1,0 +1,18 @@
+Line | Original Code 	             | Mutant Code
+---------------------------------------------------------------------
+  2  | int sum = a + b - a;          | int sum = a * b - a;           
+  2  | int sum = a + b - a;          | int sum = a - b - a;           
+  2  | int sum = a + b - a;          | int sum = a / b - a;           
+  2  | int sum = a + b - a;          | int sum = a + b * a;           
+  2  | int sum = a + b - a;          | int sum = a + b + a;           
+  2  | int sum = a + b - a;          | int sum = a + b / a;           
+  3  | int sub = a-b;                | int sub = a*b;                 
+  3  | int sub = a-b;                | int sub = a+b;                 
+  3  | int sub = a-b;                | int sub = a/b;                 
+---------------------------------------------------------------------
+
+Total mutants '*': 3
+Total mutants '+': 2
+Total mutants '-': 1
+Total mutants '/': 3
+Total mutants: 9
