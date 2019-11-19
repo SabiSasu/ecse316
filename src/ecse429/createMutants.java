@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,12 +15,133 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+
 public class createMutants {
 
-	public static void main(String[] args) throws IOException {
-		File program = new File("src//ecse429//program.txt");
+	public static void main(String[] args) throws Exception {
+		long today = System.currentTimeMillis();
+		String folderName = "src";
+		//new File(folderName).mkdirs();
+		
+		String source = "program.txt";
+		String destination = folderName + "//mutantList.txt";
+		
+		//generating mutants (assig 1)
+		//Assig 1
+		generateMutantFile(source, destination);
+		
+		//reading mutants and generating individual mutant files
+		//Assig 2
+		generateMutants(source, destination, folderName + "//");
+		
+		//simpleCompile(folderName + "//", "mutant2_1.java");
+		try {
+            //runProcess("pwd");
+            System.out.println("**********");
+            runProcess("javac -cp src " + folderName + "/mutant8_1.java");
+            System.out.println("**********");
+            runProcess("java -cp src mutant8_1 9 2");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+		
+		  }
+		
+	private static void printLines(String cmd, InputStream ins) throws Exception {
+        String line = null;
+        BufferedReader in = new BufferedReader(
+            new InputStreamReader(ins));
+        while ((line = in.readLine()) != null) {
+            System.out.println(cmd + " " + line);
+        }
+      }
+
+	  private static void runProcess(String command) throws Exception {
+		  Process pro = Runtime.getRuntime().exec(command);
+	        printLines(command + " stdout:", pro.getInputStream());
+	        printLines(command + " stderr:", pro.getErrorStream());
+	        pro.waitFor();
+	        System.out.println(command + " exitValue() " + pro.exitValue());
+	  }
+
+	private static void simpleCompile(String dest, String file) throws Exception {
+
+		String command = "javac mutant2_1.java";
+		 Process pro = Runtime.getRuntime().exec(command);
+		    printLines(command + " stdout:", pro.getInputStream());
+		    printLines(command + " stderr:", pro.getErrorStream());
+		    pro.waitFor();
+		    System.out.println(command + " exitValue() " + pro.exitValue());
+		
+	}
+
+	//Assig 2:
+	private static void generateMutants(String source, String dest, String folderName) throws IOException {
+		int id = 0;
+		String mutantName = "mutant";
+		
+		BufferedReader mutantFile = new BufferedReader(new FileReader(new File(dest)));
+		
+		//loop through lines in mutant file, iterate through program file to copy each line
+		String lineM = "";
+		String lineP = "";
+		int lineNum = 0;
+		boolean end = false;
+		int previousLine = 0;
+		while((lineM = mutantFile.readLine()) != null){
+			lineNum++;
+			
+			if(lineM.contains("---") && lineNum >= 3)
+				end = true;
+			
+			if(lineNum >= 3 && end == false) {
+				lineM = lineM.trim();
+				id++;
+				
+				BufferedReader programFile = new BufferedReader(new FileReader(new File(source)));
+				
+				String[] content = lineM.split(",");
+				int mutantLine = Integer.parseInt(content[0].trim());
+				if(previousLine != mutantLine) {
+					id = 1;
+					previousLine=mutantLine;
+				}
+				String mutantString = content[2].trim();
+				String programString = content[1].trim();
+				int lineCount = 0;
+				BufferedWriter writer = new BufferedWriter(new FileWriter(new File(folderName+mutantName+mutantLine+"_"+id+ ".java")));
+				
+				while((lineP = programFile.readLine()) != null){
+					lineCount++;
+					//we reached mutant, replace line
+					if(lineCount == mutantLine) {
+						writer.write(lineP.replace(programString, mutantString)+" //*\n");
+					}
+					//copy string to new file
+					else {
+						if(lineCount == 1)
+							writer.write("public class " + mutantName+mutantLine+"_"+id +"{");
+						else
+							writer.write(lineP+"\n");
+					}	
+				}
+				programFile.close();
+				writer.close();
+			}
+		}
+		mutantFile.close();
+		
+		
+		
+	}
+
+	//Assig 1:
+	private static void generateMutantFile(String source, String dest) throws IOException {
+		File program = new File(source);
 		BufferedReader reader = new BufferedReader(new FileReader(program));
-		BufferedWriter writer = new BufferedWriter(new FileWriter(new File("src//ecse429//mutants.txt")));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dest)));
 		
 		writer.write("Line | Original Code 	             | Mutant Code\n");
 		writer.write("---------------------------------------------------------------------\n");
@@ -45,10 +168,10 @@ public class createMutants {
 							mutantsFound++;
 							operatorsCount[k]++;
 							//get new line by swapping whatever exists at the character position by operators[k]
-							System.out.println(operator[j]);
+							//System.out.println(operator[j]);
 							String newLine = getNewLine(line, operator[j], operators[k]);
 							//String newLine = line.replace(operator, operators[j]);
-							String fileLine = String.format("  %-3d| %-30s| %-30s \n", lineNumb, line.trim(), newLine.trim()); 
+							String fileLine = String.format("  %-3d, %-30s, %-30s \n", lineNumb, line.trim(), newLine.trim()); 
 							//writer.newLine();
 							writer.write(fileLine);
 						}
@@ -74,9 +197,9 @@ public class createMutants {
 	}
 
 	private static String getNewLine(String line, String pos, String operators) {
-		System.out.println(line.substring(0, Integer.parseInt(pos)));
-		System.out.println(operators);
-		System.out.println(line.substring(Integer.parseInt(pos)+1, line.length()));
+		//System.out.println(line.substring(0, Integer.parseInt(pos)));
+		//System.out.println(operators);
+		//System.out.println(line.substring(Integer.parseInt(pos)+1, line.length()));
 		String result = line.substring(0, Integer.parseInt(pos)) + operators + line.substring(Integer.parseInt(pos)+1, line.length());
 		return result;
 	}
@@ -111,7 +234,7 @@ public class createMutants {
 		//copy array to a smaller array
 		String[] result = new String[index];
 		for(int i = 0; i < result.length; i++) {
-			System.out.println(found[i] + ", ");
+			//System.out.println(found[i] + ", ");
 			result[i] = found[i];
 		}
 		return result;
