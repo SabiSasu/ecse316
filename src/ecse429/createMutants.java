@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,18 +35,11 @@ public class createMutants {
 		
 		//reading mutants and generating individual mutant files
 		//Assig 2
-		generateMutants(source, destination, folderName + "//");
+		ArrayList<String> mutantNames = new ArrayList<String>();
+		mutantNames = generateMutants(source, destination, folderName + "//");
+		String input = "9 2";
+		simpleCompile(mutantNames, input);
 		
-		//simpleCompile(folderName + "//", "mutant2_1.java");
-		try {
-            //runProcess("pwd");
-            System.out.println("**********");
-            runProcess("javac -cp src " + folderName + "/mutant8_1.java");
-            System.out.println("**********");
-            runProcess("java -cp src mutant8_1 9 2");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 		
 		  }
 		
@@ -66,19 +60,25 @@ public class createMutants {
 	        System.out.println(command + " exitValue() " + pro.exitValue());
 	  }
 
-	private static void simpleCompile(String dest, String file) throws Exception {
-
-		String command = "javac mutant2_1.java";
-		 Process pro = Runtime.getRuntime().exec(command);
-		    printLines(command + " stdout:", pro.getInputStream());
-		    printLines(command + " stderr:", pro.getErrorStream());
-		    pro.waitFor();
-		    System.out.println(command + " exitValue() " + pro.exitValue());
+	private static void simpleCompile(ArrayList<String> mutants, String input) throws Exception {
+		
+		for(int i = 0; i < mutants.size(); i++) {
+			try {
+	            //runProcess("pwd");
+	            System.out.println("**********");
+	            runProcess("javac -cp src src/" + mutants.get(i) +".java");
+	            System.out.println("**********");
+	            runProcess("java -cp src " +mutants.get(i)+ " " + input);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+		}
 		
 	}
 
 	//Assig 2:
-	private static void generateMutants(String source, String dest, String folderName) throws IOException {
+	private static ArrayList<String> generateMutants(String source, String dest, String folderName) throws IOException {
+		ArrayList<String> mutantNames = new ArrayList<String>();
 		int id = 0;
 		String mutantName = "mutant";
 		
@@ -121,8 +121,10 @@ public class createMutants {
 					}
 					//copy string to new file
 					else {
-						if(lineCount == 1)
+						if(lineCount == 1) {
 							writer.write("public class " + mutantName+mutantLine+"_"+id +"{");
+							mutantNames.add(mutantName+mutantLine+"_"+id);
+						}
 						else
 							writer.write(lineP+"\n");
 					}	
@@ -132,9 +134,7 @@ public class createMutants {
 			}
 		}
 		mutantFile.close();
-		
-		
-		
+		return mutantNames;
 	}
 
 	//Assig 1:
