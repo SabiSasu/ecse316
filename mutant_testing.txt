@@ -1,0 +1,55 @@
+Test Results 
+
+Test 1
+Original file:
+*********
+javac -cp src src/program.java exitValue() 0
+*********
+java -cp src program 9 2 &> mutant_testing.txt stdout: 2
+java -cp src program 9 2 &> mutant_testing.txt exitValue() 0
+Mutant files:
+**********
+javac -cp src src/mutant8_1.java exitValue() 0
+**********
+java -cp src mutant8_1 9 2 stdout: 9
+java -cp src mutant8_1 9 2 exitValue() 0
+**********
+javac -cp src src/mutant8_2.java exitValue() 0
+**********
+java -cp src mutant8_2 9 2 stdout: -2
+java -cp src mutant8_2 9 2 exitValue() 0
+**********
+javac -cp src src/mutant8_3.java exitValue() 0
+**********
+java -cp src mutant8_3 9 2 stdout: -5
+java -cp src mutant8_3 9 2 exitValue() 0
+**********
+javac -cp src src/mutant8_4.java exitValue() 0
+**********
+java -cp src mutant8_4 9 2 stdout: 27
+java -cp src mutant8_4 9 2 exitValue() 0
+**********
+javac -cp src src/mutant8_5.java exitValue() 0
+**********
+java -cp src mutant8_5 9 2 stdout: 20
+java -cp src mutant8_5 9 2 exitValue() 0
+**********
+javac -cp src src/mutant8_6.java exitValue() 0
+**********
+java -cp src mutant8_6 9 2 stdout: 9
+java -cp src mutant8_6 9 2 exitValue() 0
+**********
+javac -cp src src/mutant9_1.java exitValue() 0
+**********
+java -cp src mutant9_1 9 2 stdout: 2
+java -cp src mutant9_1 9 2 exitValue() 0
+**********
+javac -cp src src/mutant9_2.java exitValue() 0
+**********
+java -cp src mutant9_2 9 2 stdout: 2
+java -cp src mutant9_2 9 2 exitValue() 0
+**********
+javac -cp src src/mutant9_3.java exitValue() 0
+**********
+java -cp src mutant9_3 9 2 stdout: 2
+java -cp src mutant9_3 9 2 exitValue() 0

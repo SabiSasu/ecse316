@@ -3,11 +3,14 @@ package ecse429;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +29,7 @@ public class createMutants {
 		String folderName = "src";
 		//new File(folderName).mkdirs();
 		
-		String source = "program.txt";
+		String source = "src/program.java";
 		String destination = folderName + "//mutantList.txt";
 		
 		//generating mutants (assig 1)
@@ -37,8 +40,23 @@ public class createMutants {
 		//Assig 2
 		ArrayList<String> mutantNames = new ArrayList<String>();
 		mutantNames = generateMutants(source, destination, folderName + "//");
-		String input = "9 2";
-		simpleCompile(mutantNames, input);
+		String test1 = "9 2";
+		String test2 = "0 0";
+		String test3 = "1 5";
+		
+		
+	    
+		//part 3
+		PrintStream out = new PrintStream(new FileOutputStream("mutant_testing.txt"));
+	      System.setOut(out);
+	      
+	      System.out.println("Test Results \n");
+	      
+	      System.out.println("Test 1");
+	    
+		simpleCompile(mutantNames, test1);
+		//other tests
+		
 		
 		
 		  }
@@ -61,6 +79,14 @@ public class createMutants {
 	  }
 
 	private static void simpleCompile(ArrayList<String> mutants, String input) throws Exception {
+	  
+	  System.out.println("Original file:");
+	  System.out.println("*********");
+	  runProcess("javac -cp src src/program.java");
+	  System.out.println("*********");
+	  runProcess("java -cp src program " + input + " &> mutant_testing.txt"); //use this value to compare with mutants
+	  
+	  System.out.println("Mutant files:");
 		
 		for(int i = 0; i < mutants.size(); i++) {
 			try {
