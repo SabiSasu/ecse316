@@ -1,0 +1,80 @@
+Software Under Test:
+**********
+Test: 1 3
+Result:  4
+**********
+Test: 7 9
+Result:  16
+**********
+Test: 3 0
+Result:  3
+**********
+
+
+Mutants:
+
+mutant8_1
+**********
+**********
+Test: 1 3
+Result:  2
+SUT Output: java.io.BufferedInputStream@3d4eac69
+Mutant is killed
+**********
+Test: 7 9
+Result:  56
+SUT Output: java.io.BufferedInputStream@42a57993
+Mutant is killed
+**********
+Test: 3 0
+Result:  -3
+SUT Output: java.io.BufferedInputStream@75b84c92
+Mutant is killed
+**********
+
+
+mutant8_2
+**********
+**********
+Test: 1 3
+Result:  -3
+SUT Output: java.io.BufferedInputStream@3d4eac69
+Mutant is killed
+**********
+Test: 7 9
+Result:  -9
+SUT Output: java.io.BufferedInputStream@42a57993
+Mutant is killed
+**********
+Test: 3 0
+Result:  0
+SUT Output: java.io.BufferedInputStream@75b84c92
+Mutant is killed
+**********
+
+
+mutant8_3
+**********
+**********
+Test: 1 3
+Result:  -1
+SUT Output: java.io.BufferedInputStream@3d4eac69
+Mutant is killed
+**********
+Test: 7 9
+Result:  -7
+SUT Output: java.io.BufferedInputStream@42a57993
+Mutant is killed
+**********
+Test: 3 0
+ Exception in thread "main" java.lang.ArithmeticException: / by zero
+ 	at mutant8_3.add(mutant8_3.java:7)
+ 	at mutant8_3.main(mutant8_3.java:3)
+SUT Output: java.io.BufferedInputStream@75b84c92
+Mutant is killed
+**********
+
+
+Total Mutants: 3
+Total Mutants Killed: 3
+Mutants Killed Ratio: 1

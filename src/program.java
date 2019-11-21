@@ -5,8 +5,7 @@ public class program {
     System.out.println(result);
   }
   public static int add(int a, int b){
-	int sum = a + b - a;
-	int sub = a-b;
+	int sum = a + b;
 	return sum;
 
 }

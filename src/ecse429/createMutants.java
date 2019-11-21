@@ -3,6 +3,7 @@ package ecse429;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -23,147 +24,134 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
 public class createMutants {
-
+	static int mutantsKilled = 0;
 	public static void main(String[] args) throws Exception {
-		long today = System.currentTimeMillis();
-		String folderName = "src";
-		//new File(folderName).mkdirs();
-		
-		String source = "src/program.java";
-		String destination = folderName + "//mutantList.txt";
-		
+		//clean up src folder
+		cleanSourceFolder();
+		String programFile = "program";
+
+		String source = "src//" + programFile + ".java";
+		String destination =  "src//mutantList.txt";
+		String vectorFile = "src//testVectors.txt";
+
 		//generating mutants (assig 1)
-		//Assig 1
 		generateMutantFile(source, destination);
-		
-		//reading mutants and generating individual mutant files
-		//Assig 2
-		ArrayList<String> mutantNames = new ArrayList<String>();
-		mutantNames = generateMutants(source, destination, folderName + "//");
-		String test1 = "9 2";
-		String test2 = "0 0";
-		String test3 = "1 5";
-		
-		
-	    
-		//part 3
-		PrintStream out = new PrintStream(new FileOutputStream("mutant_testing.txt"));
-	      System.setOut(out);
-	      
-	      System.out.println("Test Results \n");
-	      
-	      System.out.println("Test 1");
-	    
-		simpleCompile(mutantNames, test1);
-		
-		 System.out.println("Test 2");
-	        
-	        simpleCompile(mutantNames, test2);
-	        
-	        System.out.println("Test 3");	        
-	        simpleCompile(mutantNames, test3);
-	        
-		//creating final document
-	        File file = new File("mutant_testing.txt");
-	        Scanner sc = new Scanner(file);
-	        int originalresult = 0;
-	        int answer = 0;
-	        String mutantName = null;
-	        int testNumber = 1;
-	        
-	        FileWriter fileWriter = new FileWriter("src/mutantList.txt", true); //Set true for append mode
-	        PrintWriter writer = new PrintWriter(fileWriter);
-	       
-	        
-	        while (sc.hasNextLine()) { 
-	          String line = sc.nextLine(); 
 
-	          if (line.matches("java -cp src program (.*) &> mutant_testing.txt stdout:(.*)")) {
-	            
-	              originalresult = Integer.parseInt(line.substring(line.indexOf(':') + 2));
-	          }
-	            
-	            else if (line.matches("java -cp src (.*) &> mutant_testing.txt stdout:(.*)")) {
-	            answer = Integer.parseInt(line.substring(line.indexOf(':') + 2));
-	            mutantName = line.substring(13, 21);
-	            if (answer == originalresult) {
-	              if (testNumber == 1) {
-	              writer.println(mutantName + " was not killed by test " + test1);
-	              }
-	              else if (testNumber == 2) {
-	                writer.println(mutantName + " was not killed by test " + test2);
-	              }
-	              else {
-	                writer.println(mutantName + " was not killed by test " + test3);
-	              }
-	            }
-	            else {
-	              if (testNumber == 1) {
-	              writer.println(mutantName + " was killed by test " + test1);
-	              writer.println("Original code's result: " + originalresult);
-	              writer.println("mutant code's result: " + answer);
-	              }
-	              else if (testNumber == 2) {
-	                writer.println(mutantName + " was killed by test " + test2);
-	                  writer.println("Original code's result: " + originalresult);
-	                  writer.println("mutant code's result: " + answer);
-	              }
-	              else {
-	                writer.println(mutantName + " was killed by test " + test2);
-	                  writer.println("Original code's result: " + originalresult);
-	                  writer.println("mutant code's result: " + answer);
-	              }
-	            }
-	            }
-	          }        
-	        
-	        writer.close();
-	        sc.close();
-	        }
+		//reading mutants and generating individual mutant files (assig 2)
+		ArrayList<String> mutantList = new ArrayList<String>();
+		mutantList = generateMutants(source, destination, "src//");
 		
-		
-		
-		  
-		
-	private static void printLines(String cmd, InputStream ins) throws Exception {
-        String line = null;
-        BufferedReader in = new BufferedReader(
-            new InputStreamReader(ins));
-        while ((line = in.readLine()) != null) {
-            System.out.println(cmd + " " + line);
-        }
-      }
+		//reading vector file
+		ArrayList<String> vectors = getVectorsFile(vectorFile);
 
-	  private static void runProcess(String command) throws Exception {
-		  Process pro = Runtime.getRuntime().exec(command);
-	        printLines(command + " stdout:", pro.getInputStream());
-	        printLines(command + " stderr:", pro.getErrorStream());
-	        pro.waitFor();
-	        System.out.println(command + " exitValue() " + pro.exitValue());
-	  }
+		//run tests with test vectors and write output to file
+		TestMutants(vectors, mutantList, programFile);
 
-	private static void simpleCompile(ArrayList<String> mutants, String input) throws Exception {
-	  
-	  System.out.println("Original file:");
-	  System.out.println("*********");
-	  runProcess("javac -cp src src/program.java");
-	  System.out.println("*********");
-	  runProcess("java -cp src program " + input + " &> mutant_testing.txt"); //use this value to compare with mutants
-	  
-	  System.out.println("Mutant files:");
+	}
+
+	private static void TestMutants(ArrayList<String> vectors, ArrayList<String> mutantList, String program) throws Exception {
+		PrintStream out = new PrintStream(new FileOutputStream("src//mutant_testing.txt"));
+		ArrayList<String> results = new ArrayList<String>();
+		System.setOut(out);
+
+		//Run main program
+		System.out.println("Software Under Test:");
+		System.out.println("**********");
+		results = runProgram(vectors, program);
+		System.out.println("\n");
 		
-		for(int i = 0; i < mutants.size(); i++) {
-			try {
-	            //runProcess("pwd");
-	            System.out.println("**********");
-	            runProcess("javac -cp src src/" + mutants.get(i) +".java");
-	            System.out.println("**********");
-	            runProcess("java -cp src " +mutants.get(i)+ " " + input);
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
+		//Run tests
+		System.out.println("Mutants:\n");
+		
+		for (String mutant: mutantList) {
+			simpleRun(vectors, mutant, results);
+			System.out.println("\n");
 		}
 		
+		System.out.println("Total Mutants: " + mutantList.size());
+		System.out.println("Total Mutants Killed: " + mutantsKilled);
+		System.out.println("Mutants Killed Ratio: " + mutantsKilled/mutantList.size());
+	}
+
+	
+	private static ArrayList<String> getVectorsFile(String vectorFile) throws IOException {
+		ArrayList<String> output = new ArrayList<String>();
+		File file = new File(vectorFile);
+		BufferedReader reader = new BufferedReader(new FileReader(file));
+		String line;
+		while((line = reader.readLine()) != null) {
+			output.add(line);
+		}
+		return output;
+	}
+
+	private static void cleanSourceFolder() {
+		//to do maybe?
+
+	}
+
+	private static void printLines(String cmd, InputStream ins) throws Exception {
+		String line = null;
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(ins));
+		while ((line = in.readLine()) != null) {
+			System.out.println(cmd + " " + line);
+		}
+	}
+
+	private static String runProcess(String command) throws Exception {
+		Process pro = Runtime.getRuntime().exec(command);
+		if(!command.contains("javac")) {
+		printLines("Result: ", pro.getInputStream());
+		printLines("", pro.getErrorStream());
+		pro.waitFor();
+		}
+		return pro.getInputStream().toString();
+	}
+
+	private static void simpleRun(ArrayList<String> inputs, String mutant, ArrayList<String> results) throws Exception {
+		System.out.println(mutant);
+		System.out.println("**********");
+		String output = runProcess("javac -cp src " + mutant);
+		System.out.println("**********");
+		Boolean mutantKilled = true;
+		for (int i = 0; i < inputs.size(); i++) {
+			try {
+				System.out.println("Test: " + inputs.get(i));
+				output = runProcess("java -cp src " +mutant+ " " + inputs.get(i));
+				System.out.println("SUT Output: " + results.get(i));
+				
+				if(output.equalsIgnoreCase(results.get(i))) {
+					System.out.println("Mutant is NOT killed");
+					mutantKilled = false;
+				}
+				else {
+					System.out.println("Mutant is killed");
+				}
+				System.out.println("**********");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if(mutantKilled) {
+			mutantsKilled++;
+		}
+	}
+	
+	private static ArrayList<String> runProgram(ArrayList<String> inputs, String mutant) throws Exception {
+		ArrayList<String> outputs = new ArrayList<String>();
+		for (String input: inputs) {
+			try {
+				System.out.println("Test: " + input);
+				String output = runProcess("java -cp src " +mutant+ " " + input);
+				outputs.add(output);
+				System.out.println("**********");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return outputs;
 	}
 
 	//Assig 2:
@@ -171,9 +159,9 @@ public class createMutants {
 		ArrayList<String> mutantNames = new ArrayList<String>();
 		int id = 0;
 		String mutantName = "mutant";
-		
+
 		BufferedReader mutantFile = new BufferedReader(new FileReader(new File(dest)));
-		
+
 		//loop through lines in mutant file, iterate through program file to copy each line
 		String lineM = "";
 		String lineP = "";
@@ -182,16 +170,16 @@ public class createMutants {
 		int previousLine = 0;
 		while((lineM = mutantFile.readLine()) != null){
 			lineNum++;
-			
+
 			if(lineM.contains("---") && lineNum >= 3)
 				end = true;
-			
+
 			if(lineNum >= 3 && end == false) {
 				lineM = lineM.trim();
 				id++;
-				
+
 				BufferedReader programFile = new BufferedReader(new FileReader(new File(source)));
-				
+
 				String[] content = lineM.split(",");
 				int mutantLine = Integer.parseInt(content[0].trim());
 				if(previousLine != mutantLine) {
@@ -202,7 +190,7 @@ public class createMutants {
 				String programString = content[1].trim();
 				int lineCount = 0;
 				BufferedWriter writer = new BufferedWriter(new FileWriter(new File(folderName+mutantName+mutantLine+"_"+id+ ".java")));
-				
+
 				while((lineP = programFile.readLine()) != null){
 					lineCount++;
 					//we reached mutant, replace line
@@ -232,17 +220,17 @@ public class createMutants {
 		File program = new File(source);
 		BufferedReader reader = new BufferedReader(new FileReader(program));
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dest)));
-		
+
 		writer.write("Line | Original Code 	             | Mutant Code\n");
 		writer.write("---------------------------------------------------------------------\n");
-		
+
 		int mutantsFound = 0;
 		int lineNumb = 0;
 		String line = "";
 		String[] operators = {"*", "+", "-", "/"};
 		int[] operatorsCount = {0, 0, 0, 0};
 		int operatorPos;
-		
+
 		while((line = reader.readLine()) != null){
 			line = line.trim();
 			//increment line
@@ -267,11 +255,11 @@ public class createMutants {
 						}
 					}
 				}
-				
+
 			}
-					
+
 		}
-		
+
 		//writing to mutants file
 		writer.write("---------------------------------------------------------------------\n");
 		writer.newLine();
@@ -282,8 +270,8 @@ public class createMutants {
 		writer.write("Total mutants: " + mutantsFound);
 		writer.close();
 		reader.close();
-		
-		
+
+
 	}
 
 	private static String getNewLine(String line, String pos, String operators) {
@@ -320,7 +308,7 @@ public class createMutants {
 				index+=2;
 			}
 		}
-		
+
 		//copy array to a smaller array
 		String[] result = new String[index];
 		for(int i = 0; i < result.length; i++) {
@@ -334,9 +322,9 @@ public class createMutants {
 		for(int i = 0; i < operators.length; i++) {
 			if(line.contains(operators[i]))
 				return operators[i];
-			
+
 		}
 		return null;
 	}
-	
+
 }

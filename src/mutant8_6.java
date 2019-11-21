@@ -5,7 +5,7 @@ public class mutant8_6{
   }
   public static int add(int a, int b){
 	int sum = a + b / a; //*
-	int sub = a-b;
+	int sub = b - a;
 	return sum;
 
 }
