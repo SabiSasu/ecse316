@@ -18,7 +18,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+import java.util.Scanner;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
@@ -55,11 +55,75 @@ public class createMutants {
 	      System.out.println("Test 1");
 	    
 		simpleCompile(mutantNames, test1);
-		//other tests
+		
+		 System.out.println("Test 2");
+	        
+	        simpleCompile(mutantNames, test2);
+	        
+	        System.out.println("Test 3");	        
+	        simpleCompile(mutantNames, test3);
+	        
+		//creating final document
+	        File file = new File("mutant_testing.txt");
+	        Scanner sc = new Scanner(file);
+	        int originalresult = 0;
+	        int answer = 0;
+	        String mutantName = null;
+	        int testNumber = 1;
+	        
+	        FileWriter fileWriter = new FileWriter("src/mutantList.txt", true); //Set true for append mode
+	        PrintWriter writer = new PrintWriter(fileWriter);
+	       
+	        
+	        while (sc.hasNextLine()) { 
+	          String line = sc.nextLine(); 
+
+	          if (line.matches("java -cp src program (.*) &> mutant_testing.txt stdout:(.*)")) {
+	            
+	              originalresult = Integer.parseInt(line.substring(line.indexOf(':') + 2));
+	          }
+	            
+	            else if (line.matches("java -cp src (.*) &> mutant_testing.txt stdout:(.*)")) {
+	            answer = Integer.parseInt(line.substring(line.indexOf(':') + 2));
+	            mutantName = line.substring(13, 21);
+	            if (answer == originalresult) {
+	              if (testNumber == 1) {
+	              writer.println(mutantName + " was not killed by test " + test1);
+	              }
+	              else if (testNumber == 2) {
+	                writer.println(mutantName + " was not killed by test " + test2);
+	              }
+	              else {
+	                writer.println(mutantName + " was not killed by test " + test3);
+	              }
+	            }
+	            else {
+	              if (testNumber == 1) {
+	              writer.println(mutantName + " was killed by test " + test1);
+	              writer.println("Original code's result: " + originalresult);
+	              writer.println("mutant code's result: " + answer);
+	              }
+	              else if (testNumber == 2) {
+	                writer.println(mutantName + " was killed by test " + test2);
+	                  writer.println("Original code's result: " + originalresult);
+	                  writer.println("mutant code's result: " + answer);
+	              }
+	              else {
+	                writer.println(mutantName + " was killed by test " + test2);
+	                  writer.println("Original code's result: " + originalresult);
+	                  writer.println("mutant code's result: " + answer);
+	              }
+	            }
+	            }
+	          }        
+	        
+	        writer.close();
+	        sc.close();
+	        }
 		
 		
 		
-		  }
+		  
 		
 	private static void printLines(String cmd, InputStream ins) throws Exception {
         String line = null;
