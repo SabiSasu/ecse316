@@ -102,9 +102,9 @@ public class createMutants {
 	private static String runProcess(String command) throws Exception {
 		Process pro = Runtime.getRuntime().exec(command);
 		if(!command.contains("javac")) {
-		printLines("Result: ", pro.getInputStream());
-		printLines("", pro.getErrorStream());
-		pro.waitFor();
+			printLines("Result: ", pro.getInputStream());
+			printLines("", pro.getErrorStream());
+			pro.waitFor();
 		}
 		return pro.getInputStream().toString();
 	}
@@ -112,7 +112,7 @@ public class createMutants {
 	private static void simpleRun(ArrayList<String> inputs, String mutant, ArrayList<String> results) throws Exception {
 		System.out.println(mutant);
 		System.out.println("**********");
-		String output = runProcess("javac -cp src " + mutant);
+		String output = runProcess("javac -cp src src//" + mutant + ".java");
 		System.out.println("**********");
 		Boolean mutantKilled = true;
 		for (int i = 0; i < inputs.size(); i++) {
@@ -140,11 +140,12 @@ public class createMutants {
 	}
 	
 	private static ArrayList<String> runProgram(ArrayList<String> inputs, String mutant) throws Exception {
+		String output = runProcess("javac -cp src src//" + mutant + ".java");
 		ArrayList<String> outputs = new ArrayList<String>();
 		for (String input: inputs) {
 			try {
 				System.out.println("Test: " + input);
-				String output = runProcess("java -cp src " +mutant+ " " + input);
+				output = runProcess("java -cp src " +mutant+ " " + input);
 				outputs.add(output);
 				System.out.println("**********");
 			} catch (Exception e) {
