@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,7 +72,7 @@ public class createMutants {
 		
 		System.out.println("Total Mutants: " + mutantList.size());
 		System.out.println("Total Mutants Killed: " + mutantsKilled);
-		System.out.println("Mutants Killed Ratio: " + mutantsKilled/mutantList.size());
+		System.out.println("Mutants Killed Ratio: " + (double)mutantsKilled/mutantList.size());
 	}
 
 	
@@ -90,23 +92,28 @@ public class createMutants {
 
 	}
 
-	private static void printLines(String cmd, InputStream ins) throws Exception {
+	private static String printLines(String cmd, InputStream ins) throws Exception {
 		String line = null;
 		BufferedReader in = new BufferedReader(
 				new InputStreamReader(ins));
 		while ((line = in.readLine()) != null) {
 			System.out.println(cmd + " " + line);
+			return line;
 		}
+		return line;
 	}
 
 	private static String runProcess(String command) throws Exception {
 		Process pro = Runtime.getRuntime().exec(command);
 		if(!command.contains("javac")) {
-			printLines("Result: ", pro.getInputStream());
+			InputStream output = pro.getInputStream();
+			String result = printLines("Result: ", output);
 			printLines("", pro.getErrorStream());
 			pro.waitFor();
+			return result;
 		}
-		return pro.getInputStream().toString();
+		pro.waitFor();
+		return null;
 	}
 
 	private static void simpleRun(ArrayList<String> inputs, String mutant, ArrayList<String> results) throws Exception {
