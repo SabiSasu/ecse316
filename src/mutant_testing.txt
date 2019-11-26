@@ -4,10 +4,13 @@ Test: 1 3
 Result:  4
 **********
 Test: 7 9
-Result:  16
+Result:  8
 **********
 Test: 3 0
 Result:  3
+**********
+Test: 4 5
+Result:  5
 **********
 
 
@@ -17,19 +20,24 @@ mutant8_1
 **********
 **********
 Test: 1 3
-Result:  2
-SUT Output: java.io.BufferedInputStream@3d4eac69
+Result:  3
+SUT Output: 4
 Mutant is killed
 **********
 Test: 7 9
-Result:  56
-SUT Output: java.io.BufferedInputStream@42a57993
+Result:  9
+SUT Output: 8
 Mutant is killed
 **********
 Test: 3 0
-Result:  -3
-SUT Output: java.io.BufferedInputStream@75b84c92
+Result:  0
+SUT Output: 3
 Mutant is killed
+**********
+Test: 4 5
+Result:  5
+SUT Output: 5
+Mutant is NOT killed
 **********
 
 
@@ -37,18 +45,23 @@ mutant8_2
 **********
 **********
 Test: 1 3
-Result:  -3
-SUT Output: java.io.BufferedInputStream@3d4eac69
+Result:  -2
+SUT Output: 4
 Mutant is killed
 **********
 Test: 7 9
-Result:  -9
-SUT Output: java.io.BufferedInputStream@42a57993
+Result:  6
+SUT Output: 8
 Mutant is killed
 **********
 Test: 3 0
-Result:  0
-SUT Output: java.io.BufferedInputStream@75b84c92
+Result:  3
+SUT Output: 3
+Mutant is NOT killed
+**********
+Test: 4 5
+Result:  3
+SUT Output: 5
 Mutant is killed
 **********
 
@@ -57,24 +70,102 @@ mutant8_3
 **********
 **********
 Test: 1 3
-Result:  -1
-SUT Output: java.io.BufferedInputStream@3d4eac69
+Result:  0
+SUT Output: 4
 Mutant is killed
 **********
 Test: 7 9
-Result:  -7
-SUT Output: java.io.BufferedInputStream@42a57993
+Result:  0
+SUT Output: 8
 Mutant is killed
 **********
 Test: 3 0
  Exception in thread "main" java.lang.ArithmeticException: / by zero
- 	at mutant8_3.add(mutant8_3.java:7)
- 	at mutant8_3.main(mutant8_3.java:3)
-SUT Output: java.io.BufferedInputStream@75b84c92
+SUT Output: 3
+Error running the mutant
+**********
+Test: 4 5
+Result:  0
+SUT Output: 5
 Mutant is killed
 **********
 
 
-Total Mutants: 3
-Total Mutants Killed: 3
-Mutants Killed Ratio: 1
+mutant8_4
+**********
+**********
+Test: 1 3
+Result:  4
+SUT Output: 4
+Mutant is NOT killed
+**********
+Test: 7 9
+Result:  70
+SUT Output: 8
+Mutant is killed
+**********
+Test: 3 0
+Result:  3
+SUT Output: 3
+Mutant is NOT killed
+**********
+Test: 4 5
+Result:  24
+SUT Output: 5
+Mutant is killed
+**********
+
+
+mutant8_5
+**********
+**********
+Test: 1 3
+Result:  5
+SUT Output: 4
+Mutant is killed
+**********
+Test: 7 9
+Result:  23
+SUT Output: 8
+Mutant is killed
+**********
+Test: 3 0
+Result:  6
+SUT Output: 3
+Mutant is killed
+**********
+Test: 4 5
+Result:  13
+SUT Output: 5
+Mutant is killed
+**********
+
+
+mutant8_6
+**********
+**********
+Test: 1 3
+Result:  3
+SUT Output: 4
+Mutant is killed
+**********
+Test: 7 9
+Result:  9
+SUT Output: 8
+Mutant is killed
+**********
+Test: 3 0
+Result:  0
+SUT Output: 3
+Mutant is killed
+**********
+Test: 4 5
+Result:  5
+SUT Output: 5
+Mutant is NOT killed
+**********
+
+
+Total Mutants: 6
+Total Mutants Killed: 2
+Mutants Killed Ratio: 0.3333333333333333

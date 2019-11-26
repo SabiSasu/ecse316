@@ -4,7 +4,7 @@ public class mutant8_2{
     System.out.println(result);
   }
   public static int add(int a, int b){
-	int sum = a - b; //*
+	int sum = a - b / a; //*
 	return sum;
 
 }

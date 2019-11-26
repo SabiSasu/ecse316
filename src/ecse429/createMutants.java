@@ -28,25 +28,23 @@ import javax.tools.ToolProvider;
 public class createMutants {
 	static int mutantsKilled = 0;
 	public static void main(String[] args) throws Exception {
-		//clean up src folder
-		cleanSourceFolder();
-		String programFile = "program";
 
+		String programFile = "program";
 		String source = "src//" + programFile + ".java";
 		String destination =  "src//mutantList.txt";
 		String vectorFile = "src//testVectors.txt";
 
-		//generating mutants (assig 1)
+		//generating mutants (part 1)
 		generateMutantFile(source, destination);
 
-		//reading mutants and generating individual mutant files (assig 2)
+		//reading mutants and generating individual mutant files (part 2)
 		ArrayList<String> mutantList = new ArrayList<String>();
 		mutantList = generateMutants(source, destination, "src//");
 		
 		//reading vector file
 		ArrayList<String> vectors = getVectorsFile(vectorFile);
 
-		//run tests with test vectors and write output to file
+		//run tests with test vectors and write output to file (part 3)
 		TestMutants(vectors, mutantList, programFile);
 
 	}
@@ -62,14 +60,14 @@ public class createMutants {
 		results = runProgram(vectors, program);
 		System.out.println("\n");
 		
-		//Run tests
+		//Run mutants
 		System.out.println("Mutants:\n");
-		
 		for (String mutant: mutantList) {
 			simpleRun(vectors, mutant, results);
 			System.out.println("\n");
 		}
 		
+		//results
 		System.out.println("Total Mutants: " + mutantList.size());
 		System.out.println("Total Mutants Killed: " + mutantsKilled);
 		System.out.println("Mutants Killed Ratio: " + (double)mutantsKilled/mutantList.size());
@@ -86,12 +84,8 @@ public class createMutants {
 		}
 		return output;
 	}
-
-	private static void cleanSourceFolder() {
-		//to do maybe?
-
-	}
-
+	
+	//prints result (do not touch)
 	private static String printLines(String cmd, InputStream ins) throws Exception {
 		String line = null;
 		BufferedReader in = new BufferedReader(
@@ -102,7 +96,8 @@ public class createMutants {
 		}
 		return line;
 	}
-
+	
+	//used to run command lines (do not touch)
 	private static String runProcess(String command) throws Exception {
 		Process pro = Runtime.getRuntime().exec(command);
 		if(!command.contains("javac")) {
@@ -115,19 +110,25 @@ public class createMutants {
 		pro.waitFor();
 		return null;
 	}
-
+	
+	//used to compile and run mutants
 	private static void simpleRun(ArrayList<String> inputs, String mutant, ArrayList<String> results) throws Exception {
 		System.out.println(mutant);
 		System.out.println("**********");
+		
+		//compile
 		String output = runProcess("javac -cp src src/" + mutant + ".java");
 		System.out.println("**********");
 		Boolean mutantKilled = true;
+		
+		//iterate through vectors
 		for (int i = 0; i < inputs.size(); i++) {
 			try {
 				System.out.println("Test: " + inputs.get(i));
 				output = runProcess("java -cp src " +mutant+ " " + inputs.get(i));
 				System.out.println("SUT Output: " + results.get(i));
 				
+				//check if mutant is killed or not
 				if(output.equalsIgnoreCase(results.get(i))) {
 					System.out.println("Mutant is NOT killed");
 					mutantKilled = false;
@@ -137,18 +138,23 @@ public class createMutants {
 				}
 				System.out.println("**********");
 			} catch (Exception e) {
+				System.out.println("Error running the mutant");
+				System.out.println("**********");
 				e.printStackTrace();
 			}
 		}
-		
+		//mutant was not killed, increment
 		if(mutantKilled) {
 			mutantsKilled++;
 		}
 	}
 	
+	//used to compile and run program file
 	private static ArrayList<String> runProgram(ArrayList<String> inputs, String mutant) throws Exception {
+		//compile file
 		String output = runProcess("javac -cp src src/" + mutant + ".java");
 		ArrayList<String> outputs = new ArrayList<String>();
+		//iterate through list of vectors
 		for (String input: inputs) {
 			try {
 				System.out.println("Test: " + input);
@@ -162,34 +168,35 @@ public class createMutants {
 		return outputs;
 	}
 
-	//Assig 2:
+	//Part 2: inject mutants
 	private static ArrayList<String> generateMutants(String source, String dest, String folderName) throws IOException {
 		ArrayList<String> mutantNames = new ArrayList<String>();
-		int id = 0;
 		String mutantName = "mutant";
-
 		BufferedReader mutantFile = new BufferedReader(new FileReader(new File(dest)));
-
-		//loop through lines in mutant file, iterate through program file to copy each line
+		
 		String lineM = "";
 		String lineP = "";
 		int lineNum = 0;
 		boolean end = false;
 		int previousLine = 0;
+		int id = 0;
+		
+		//loop through lines in mutant list file, iterate through program file to copy each line
 		while((lineM = mutantFile.readLine()) != null){
 			lineNum++;
-
+			
+			//reached the end of mutant list file, exit
 			if(lineM.contains("---") && lineNum >= 3)
 				end = true;
 
+			//reached the part of mutant list file that contains mutant information
 			if(lineNum >= 3 && end == false) {
-				lineM = lineM.trim();
 				id++;
-
-				BufferedReader programFile = new BufferedReader(new FileReader(new File(source)));
-
-				String[] content = lineM.split(",");
+				String[] content = (lineM.trim()).split(",");
+				//retrieve mutant line
 				int mutantLine = Integer.parseInt(content[0].trim());
+				
+				//resetting id because we reached a new line of mutants
 				if(previousLine != mutantLine) {
 					id = 1;
 					previousLine=mutantLine;
@@ -198,16 +205,19 @@ public class createMutants {
 				String programString = content[1].trim();
 				int lineCount = 0;
 				BufferedWriter writer = new BufferedWriter(new FileWriter(new File(folderName+mutantName+mutantLine+"_"+id+ ".java")));
+				BufferedReader programFile = new BufferedReader(new FileReader(new File(source)));
 
+				//iterate through program file and copy its content in appropriate mutant file
 				while((lineP = programFile.readLine()) != null){
 					lineCount++;
-					//we reached mutant, replace line
+					//we reached mutant, replace line by mutant
 					if(lineCount == mutantLine) {
 						writer.write(lineP.replace(programString, mutantString)+" //*\n");
 					}
 					//copy string to new file
 					else {
 						if(lineCount == 1) {
+							//replace the name of the class
 							writer.write("public class " + mutantName+mutantLine+"_"+id +"{");
 							mutantNames.add(mutantName+mutantLine+"_"+id);
 						}
@@ -223,7 +233,7 @@ public class createMutants {
 		return mutantNames;
 	}
 
-	//Assig 1:
+	//Part 1: generate mutant list
 	private static void generateMutantFile(String source, String dest) throws IOException {
 		File program = new File(source);
 		BufferedReader reader = new BufferedReader(new FileReader(program));
@@ -237,7 +247,6 @@ public class createMutants {
 		String line = "";
 		String[] operators = {"*", "+", "-", "/"};
 		int[] operatorsCount = {0, 0, 0, 0};
-		int operatorPos;
 
 		while((line = reader.readLine()) != null){
 			line = line.trim();
@@ -254,11 +263,8 @@ public class createMutants {
 							mutantsFound++;
 							operatorsCount[k]++;
 							//get new line by swapping whatever exists at the character position by operators[k]
-							//System.out.println(operator[j]);
 							String newLine = getNewLine(line, operator[j], operators[k]);
-							//String newLine = line.replace(operator, operators[j]);
 							String fileLine = String.format("  %-3d, %-30s, %-30s \n", lineNumb, line.trim(), newLine.trim()); 
-							//writer.newLine();
 							writer.write(fileLine);
 						}
 					}
@@ -283,9 +289,6 @@ public class createMutants {
 	}
 
 	private static String getNewLine(String line, String pos, String operators) {
-		//System.out.println(line.substring(0, Integer.parseInt(pos)));
-		//System.out.println(operators);
-		//System.out.println(line.substring(Integer.parseInt(pos)+1, line.length()));
 		String result = line.substring(0, Integer.parseInt(pos)) + operators + line.substring(Integer.parseInt(pos)+1, line.length());
 		return result;
 	}
@@ -320,19 +323,9 @@ public class createMutants {
 		//copy array to a smaller array
 		String[] result = new String[index];
 		for(int i = 0; i < result.length; i++) {
-			//System.out.println(found[i] + ", ");
 			result[i] = found[i];
 		}
 		return result;
-	}
-
-	private static String lineContains(String line, String[] operators) {
-		for(int i = 0; i < operators.length; i++) {
-			if(line.contains(operators[i]))
-				return operators[i];
-
-		}
-		return null;
 	}
 
 }

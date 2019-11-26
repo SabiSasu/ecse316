@@ -1,12 +1,15 @@
 Line | Original Code 	             | Mutant Code
 ---------------------------------------------------------------------
-  8  , int sum = a + b;              , int sum = a * b;               
-  8  , int sum = a + b;              , int sum = a - b;               
-  8  , int sum = a + b;              , int sum = a / b;               
+  8  , int sum = a + b / a;          , int sum = a * b / a;           
+  8  , int sum = a + b / a;          , int sum = a - b / a;           
+  8  , int sum = a + b / a;          , int sum = a / b / a;           
+  8  , int sum = a + b / a;          , int sum = a + b * a;           
+  8  , int sum = a + b / a;          , int sum = a + b + a;           
+  8  , int sum = a + b / a;          , int sum = a + b - a;           
 ---------------------------------------------------------------------
 
-Total mutants '*': 1
-Total mutants '+': 0
-Total mutants '-': 1
+Total mutants '*': 2
+Total mutants '+': 1
+Total mutants '-': 2
 Total mutants '/': 1
-Total mutants: 3
+Total mutants: 6
