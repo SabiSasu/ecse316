@@ -99,8 +99,16 @@ public class Query {
 		
 		for(int i = 0; i < b.length; i++) {
 			b[i] = (byte)(Integer.parseInt(s[i]));
-			System.out.println(b[i]);
+			//System.out.println(b[i]);
 		}
+		return b;
+	}
+
+	public byte[] generateQuery() {
+		byte[] b= {(byte)130, (byte)122, (byte)01, (byte)00, (byte)00, (byte)01, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00 };
+		//adding name in bytes
+		
+		//adding 00 00 01 00 01 at the end 
 		return b;
 	}
 
