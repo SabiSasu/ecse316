@@ -1,5 +1,7 @@
 package assig1;
 
+import java.nio.ByteBuffer;
+
 public class Query {
 
 	private int timeout = 5;
@@ -9,6 +11,7 @@ public class Query {
 	private String name;
 	private queryType query = queryType.A;
 	enum queryType {MX, NS, A};
+	private int requestID;
 
 	Query(String server, String name){
 		this.server = server;
@@ -91,6 +94,10 @@ public class Query {
 	public void setQuery(queryType query) {
 		this.query = query;
 	}
+	
+	public int getRequestID() {
+		return requestID;
+	}
 
 	public byte[] getByteServer() {
 		
@@ -105,11 +112,45 @@ public class Query {
 	}
 
 	public byte[] generateQuery() {
-		byte[] b= {(byte)130, (byte)122, (byte)01, (byte)00, (byte)00, (byte)01, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00 };
-		//adding name in bytes
+		//request id
+		byte id1 = (byte) (Math.random()*254);
+		byte id2 = (byte) (Math.random()*254);
+		this.requestID = id1 + id2;
+		byte[] b= {(byte)01, (byte)00, (byte)00, (byte)01, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00, (byte)00};
 		
-		//adding 00 00 01 00 01 at the end 
-		return b;
+		//create buffer with header
+		ByteBuffer buff = ByteBuffer.allocateDirect(1024);
+		buff.put(id1);
+		buff.put(id2);
+		buff.put(b);
+		
+		//adding name in bytes
+		String[] s = this.name.split("\\.");
+		for(int i = 0; i < s.length; i++) {
+			buff.put((byte)(s[i].length()));
+			//traverse string and place each char in the buffer
+			for(int j = 0; j < s[i].length(); j++) {
+				//buff.asCharBuffer().put("a"); 
+				buff.put((byte)(s[i].charAt(j)));
+				//System.out.println(s[i].charAt(j));
+			}
+		}
+		//marking end of label
+		buff.put((byte)(0));
+		switch(this.query) {
+		case A: buff.put((byte)(00)); buff.put((byte)(01)); break;
+		case NS: buff.put((byte)(00)); buff.put((byte)(02)); break;
+		case MX: buff.put((byte)(00)); buff.put((byte)(15)); break;
+		//default: throws ("Error writing query");
+		}
+		
+		//adding internet label 00 01 at the end
+		buff.put((byte)(00)); 
+		buff.put((byte)(01)); 
+		buff.flip();
+		byte[] result = new byte[buff.remaining()];
+		buff.get(result, 0, result.length);
+		return result;
 	}
 
 }
