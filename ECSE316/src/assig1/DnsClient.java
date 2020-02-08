@@ -54,8 +54,7 @@ public class DnsClient {
 					System.out.println(String.format("%02x", sendData[i]));
 				}
 				System.out.println("packet ready");
-				byte[] sendData2 = null;
-				DatagramPacket sendPacket = new DatagramPacket(sendData2, sendData2.length, IPAddress, q.getPort());
+				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, q.getPort());
 				System.out.println("sending");
 				//IO Exception, send packet
 				clientSocket.send(sendPacket);
