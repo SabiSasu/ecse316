@@ -18,6 +18,7 @@ public class DnsClient {
 
 	public static void main(String[] args) {
 		//java DnsClient [-t timeout] [-r max-retries] [-p port] [-mx|-ns] @server name 
+		
 		//create query, only valid if @ character is not missing for mandatory fields
 		Query q = new Query();
 		if(((args[args.length - 2]).charAt(0) == '@')) {
@@ -34,8 +35,10 @@ public class DnsClient {
 
 		
 		long startTime = new Date().getTime();
+		
 		try {
 			DatagramSocket clientSocket = new DatagramSocket(); //initialize socket
+			//set timeout, might be too short to get a reply for default value
 			clientSocket.setSoTimeout(q.getTimeout());
 			
 			try {
@@ -43,11 +46,10 @@ public class DnsClient {
 				byte[] adress = q.getByteServer();
 				InetAddress IPAddress = InetAddress.getByAddress(adress);
 				System.out.println(IPAddress.toString());
-				//InetAddress host = InetAddress.getByName(q.getServer());
-				//System.out.println(host.toString());
-				//prepare packet to send
+				
 				byte[] sendData = q.generateQuery(); //data to send
 				
+				//printing query in hexadecimals for testing
 				for(int i =0; i < sendData.length;i++) {
 					System.out.println(String.format("%02x", sendData[i]));
 				}
@@ -60,32 +62,35 @@ public class DnsClient {
 				
 				System.out.println("receiving");
 				//receive data
-				/*byte[] receiveData = new byte[1024]; //data to send
+				byte[] receiveData = new byte[1024]; //data to send
 				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 				System.out.println("receiving");
 				clientSocket.receive(receivePacket);
-				*/
+				
 
-		        byte[] inBuf = new byte[8192];
+		        
+				/* test code from the main.java file, also doesnt work lol
+				byte[] inBuf = new byte[8192];
 		        ByteArrayInputStream inBufArray = new ByteArrayInputStream(inBuf);
 		        DataInputStream input = new DataInputStream(inBufArray);
 		        DatagramPacket response = new DatagramPacket(inBuf, inBuf.length);
 
 		        clientSocket.receive(response);
-
-				System.out.println("received, treathing info");
+				*/
+				
+				System.out.println("received, treating info");
 				//format received information
-				String modifiedSentence = new String(response.getData());
+				String modifiedSentence = new String(receivePacket.getData());
 				System.out.println(modifiedSentence);
 				ByteBuffer b = ByteBuffer.allocateDirect(1024);
-				b.put(response.getData());
+				b.put(receivePacket.getData());
 				b.flip();
 				
-				//process response
+				//process response, TO DO
 				//check id to make sure its the same
 				
 				
-				//
+				//printing response
 				System.out.println(b.array());
 				
 
