@@ -30,7 +30,7 @@ public class Query {
 				case "-r": this.maxRetries = Integer.parseInt(args[i+1]); i++; break;
 				case "-p": this.port = Integer.parseInt(args[i+1]); i++; break;
 				case "-mx": this.query = queryType.MX; i++; break; 
-				case "-ns": this.query = queryType.NS; i++; break;
+				case "-ns": this.query = queryType.NS; i++; break; //made sure only takes into account mx OR ns
 				default: System.out.println("Command unknown"); break;
 				}
 			}
