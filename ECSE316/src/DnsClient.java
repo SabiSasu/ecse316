@@ -90,7 +90,7 @@ public class DnsClient {
 					if (anscount > 0) {
 
 						System.out.println("***Answer Section (" + anscount + " records)***");
-						//   helper(b);
+					//	helper(b);
 						int offset = findEnd(b, 12); //gives us length in bytes of QNAME and NAME
 						int type = b.get(11 + offset + 4 + 2 + 1) + b.get(11 + offset + 4 + 2 + 2); //get TYPE from ANSWER
 						int theclass = b.get(11 + offset + 4 + 2 + 3) + b.get(11 + offset + 4 + 2 + 4); //get CLASS from ANSWER
@@ -119,11 +119,11 @@ public class DnsClient {
 						}
 						else if (type == 0x0002) {//ns
 							//NS <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + offset + 5) + b.get(11 + offset + 4 + offset + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); //get TTL from ANSWER
+							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); //get TTL from ANSWER
 							int temp = b.get(2);   
 							//mask with 000001000 to obtain AA from ANSWER
 							int mask = 0b000001000; //mask
-							String alias = readRData(b, 11 + offset + 4 + offset + 11);
+							String alias = readRData(b, 11 + offset + 4 + 2 + 11);
 
 							if ((temp & mask) == 8) { //is auth
 								System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
@@ -134,9 +134,9 @@ public class DnsClient {
 						}
 						else if (type == 0x000f) {//mx
 							//MX <tab> [alias] <tab> [pref] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int pref = b.get(11 + offset + 4 + offset + 11) + b.get(11 + offset + 4 + offset + 12); //get PREFERENCE
-							String alias = readRData(b, 11 + offset + 4 + offset + 13); //get EXCHANGE
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + offset + 5) + b.get(11 + offset + 4 + offset + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
+							int pref = b.get(11 + offset + 4 + 2 + 11) + b.get(11 + offset + 4 + 2 + 12); //get PREFERENCE
+							String alias = readRData(b, 11 + offset + 4 + 2 + 13); //get EXCHANGE
+							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
 							int temp = b.get(2);   
 							//mask with 000001000 to obtain AA from ANSWER
 							int mask = 0b000001000; //mask
@@ -150,8 +150,8 @@ public class DnsClient {
 						}
 						else if (type == 0x0005) {//cname
 							//CNAME <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + offset + 5) + b.get(11 + offset + 4 + offset + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
-							String alias = readRData(b, 11 + offset + 4 + offset + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
+							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
+							String alias = readRData(b, 11 + offset + 4 + 2 + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
 							int temp = b.get(2);   
 							//mask with 000001000 to obtain AA from ANSWER
 							int mask = 0b000001000; //mask
@@ -220,22 +220,32 @@ public class DnsClient {
 	}
 
 	private static String readRData(ByteBuffer b, int start) {
-		String result = "";
+	    StringBuilder mysb = new StringBuilder(100);
+		String result;
 		int num = b.get(start);
-		int count = start;
+		int index = start;
 
 		while (num != 0) {
-			for(int i = 1; i <= num; i++) {
-				result.concat(Character.toString((char) b.get(count + i)));
-			}
-			count = count + num;
-			result.concat(".");
-			num = b.get(count);
+		  if (num == -64) { //pointer
+		    int offset = b.get(index + 1);
+		    result = mysb.toString().concat(readRData(b, offset));
+		    return result;
+		  }
+		  else {
+		    for(int i = 1; i <= num; i++) {
+              mysb.append(Character.toString((char) b.get(index + i)));   
+              //System.out.println(Character.toString((char) b.get(count + i)));
+          }
+          index = index + num + 1;
+          mysb.append('.');
+          num = b.get(index);
+		  }			
 		}  
-		result = result.substring(0, result.length() - 2);
+	//	result = result.substring(0, result.length() - 2);
+		result = mysb.toString().substring(0, mysb.toString().length() - 1);
 		return result;
 	}
-
+	
 	private static void helper(ByteBuffer b) { //to help debug and look through byte buffer
 		int start = 0;
 		while (true) {
