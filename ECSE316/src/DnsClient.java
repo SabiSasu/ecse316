@@ -64,19 +64,30 @@ public class DnsClient {
 					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, q.getPort());
 					clientSocket.send(sendPacket);
 					//receive data
-					byte[] receiveData = new byte[1024]; //data to send
+					byte[] receiveData = new byte[1024]; //data to receive
 					DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 					clientSocket.receive(receivePacket);//throws timeout if times out
 
 					long endTime = new Date().getTime();
 					long totalTime = endTime - startTime;
 
+					
+					
 					System.out.println("Response received after " + totalTime + " seconds (" + retries + " retries)");
 
 					//format received information
 					ByteBuffer b = ByteBuffer.allocateDirect(1024);
 					b.put(receivePacket.getData());
 					b.flip();
+					int consn=0;
+					for(int i =0; i < b.capacity();i++) {
+						System.out.println(String.format("%02x", b.get(i)));
+						if(b.get(i) == 0) {
+							consn++;
+						}
+						if(consn > 20)
+							break;
+					}
 
 					//process response
 					int respID = b.get(0) + b.get(1); //gets the ID of response
@@ -87,6 +98,7 @@ public class DnsClient {
 					}
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
+					int authCount = b.get(8) + b.get(9); //number of records in Answer
 					int offset=10;
 					
 					System.out.println("***Answer Section (" + anscount + " records)***");
@@ -108,7 +120,7 @@ public class DnsClient {
 					if(arcount>0)
 					System.out.println("***Additional Section (" + arcount + " records)***");
 					while (arcount > 0) { //there are things in additional
-						/*offset = findEnd(b, offset+2);
+						offset = findEnd(b, offset+2);
 						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
 						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
@@ -116,8 +128,8 @@ public class DnsClient {
 							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
 							System.exit(0);
 						}
-						*/
-						//printAnswer(offset, b, type);
+						
+						printAnswer(offset, b, type);
 						arcount--;
 					}
 
@@ -203,7 +215,7 @@ public class DnsClient {
 		else if (type == 0x0005) {//cname
 			//CNAME <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
 			int ttl = byteToInt((byte)(b.get(offset   + 5) + b.get(offset   + 6) + b.get(offset   + 7) + b.get(offset   + 8))); 
-			String alias = readRData(b, offset   + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
+			String alias = readRData(b, offset + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
 			int temp = b.get(2);   
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
@@ -223,18 +235,26 @@ public class DnsClient {
 	}
 
 	private static int findEnd(ByteBuffer b, int start) {
-		//int counter = 1;
 		int result = start;
-		//int curByte1 = b.get(result); //this is where QNAME starts
 		int curByte1 = b.get(result);
 		int curByte2 = b.get(result-1);
 		byte co = (byte) 192;
 		byte oc = (byte) 12;
+		byte twod = (byte) 45;
 		
-		while (curByte1!=oc || curByte2!=co) {//we havent reached end of QNAME yet
+		while ((curByte1!=oc || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
+			if(curByte1==twod && curByte2==co) {
+				break;
+			}
+			//System.out.println(String.format("%02X", curByte1) + ", " + String.format("%02X", curByte2));
 			result++;
 			curByte1 = b.get(result);
 			curByte2 = b.get(result-1);
+			
+		}
+		if(result == 1023) {
+			System.out.println("Reached end of buffer response\nTerminating");
+			System.exit(0);
 		}
 		return result++;
 	}
