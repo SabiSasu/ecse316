@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
 public class DnsClient {
-
+	int pointer;
 	public static void main(String[] args) {
 		//java DnsClient [-t timeout] [-r max-retries] [-p port] [-mx|-ns] @server name 
 
@@ -87,93 +87,38 @@ public class DnsClient {
 					}
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
-					if (anscount > 0) {
-
-						System.out.println("***Answer Section (" + anscount + " records)***");
-					//	helper(b);
-						int offset = findEnd(b, 12); //gives us length in bytes of QNAME and NAME
-						int type = b.get(11 + offset + 4 + 2 + 1) + b.get(11 + offset + 4 + 2 + 2); //get TYPE from ANSWER
-						int theclass = b.get(11 + offset + 4 + 2 + 3) + b.get(11 + offset + 4 + 2 + 4); //get CLASS from ANSWER
+					int offset=10;
+					
+					System.out.println("***Answer Section (" + anscount + " records)***");
+					for (int i = anscount; i > 0; i--) {
+						offset = findEnd(b, offset+2);
+						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
+						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
 						if (theclass != 0x0001) {//error
 							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
 							System.exit(0);
 						}
 
-						if (type == 0x0001) { //A type query
-							//IP <tab> [ip address] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int ip1 = byteToInt(b.get(11 + offset + 4 + 2 + 11));
-							int ip2 = byteToInt(b.get(11 + offset + 4 + 2 + 12));
-							int ip3 = byteToInt(b.get(11 + offset + 4 + 2 + 13));
-							int ip4 = byteToInt(b.get(11 + offset + 4 + 2 + 14));
-							int ttl = byteToInt((byte) (b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8)));
-							int temp = b.get(2);   
-							//mask with 000001000 to obtain AA from ANSWER
-							int mask = 0b000001000; //mask
-							if ((temp & mask) == 8) { //is authority
-								System.out.println("IP \t" + ip1 + "." + ip2 + "." + ip3 + "." + ip4 + "\t" + ttl + "\t auth");
-							}
-							else { //not authority
-								System.out.println("IP \t" + ip1 + "." + ip2 + "." + ip3 + "." + ip4 + "\t" + ttl + "\t nonauth");
-							}                   
-						}
-						else if (type == 0x0002) {//ns
-							//NS <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); //get TTL from ANSWER
-							int temp = b.get(2);   
-							//mask with 000001000 to obtain AA from ANSWER
-							int mask = 0b000001000; //mask
-							String alias = readRData(b, 11 + offset + 4 + 2 + 11);
+						printAnswer(offset, b, type);
 
-							if ((temp & mask) == 8) { //is auth
-								System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
-							}
-							else { //not auth
-								System.out.println("NS \t" + alias + "\t" + ttl + "\t nonauth");
-							}
-						}
-						else if (type == 0x000f) {//mx
-							//MX <tab> [alias] <tab> [pref] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int pref = b.get(11 + offset + 4 + 2 + 11) + b.get(11 + offset + 4 + 2 + 12); //get PREFERENCE
-							String alias = readRData(b, 11 + offset + 4 + 2 + 13); //get EXCHANGE
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
-							int temp = b.get(2);   
-							//mask with 000001000 to obtain AA from ANSWER
-							int mask = 0b000001000; //mask
+					}
+					
+					int arcount = b.get(10) + b.get(11); //get ARCOUNT from HEADER
+					if(arcount>0)
+					System.out.println("***Additional Section (" + arcount + " records)***");
+					while (arcount > 0) { //there are things in additional
+						offset = findEnd(b, offset+2);
+						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
+						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
-							if ((temp & mask) == 8) { //is auth
-								System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t auth");
-							}
-							else { //not auth
-								System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t nonauth");
-							}
-						}
-						else if (type == 0x0005) {//cname
-							//CNAME <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
-							int ttl = byteToInt((byte)(b.get(11 + offset + 4 + 2 + 5) + b.get(11 + offset + 4 + 2 + 6) + b.get(11 + offset + 4 + 2 + 7) + b.get(11 + offset + 4 + 2 + 8))); 
-							String alias = readRData(b, 11 + offset + 4 + 2 + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
-							int temp = b.get(2);   
-							//mask with 000001000 to obtain AA from ANSWER
-							int mask = 0b000001000; //mask
-
-							if ((temp & mask) == 8) { //is auth
-								System.out.println("CNAME \t" + alias + "\t" + ttl + "\t auth");
-							}
-							else { //not auth
-								System.out.println("CNAME \t" + alias + "\t" + ttl + "\t nonauth");
-							}
-						}
-						else {
-							System.out.println("NOTFOUND");
+						if (theclass != 0x0001) {//error
+							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
 							System.exit(0);
 						}
-					}
 
-					int arcount = b.get(10) + b.get(11); //get ARCOUNT from HEADER
-					if (arcount != 0) { //there are things in additional
-						System.out.println("***Additional Section (" + arcount + " records)***");
-						//TODO: no idea what im supposed to print here
-						//Sabina: me neither lol
+						//printAnswer(offset, b, type);
+						arcount--;
 					}
 
 					//we're done, so exit
@@ -206,46 +151,121 @@ public class DnsClient {
 			System.out.println("ERROR \t Maximum number of retries "+ q.getMaxRetries() + " exceeded ");
 	}
 
-	private static int findEnd(ByteBuffer b, int start) {
-		int counter = 1;
-		int result = start;
-		int curByte = b.get(result); //this is where QNAME starts
-		while (curByte != 0) {//we havent reached end of QNAME yet
-			result++;
-			counter++;
-			curByte = b.get(result);
+	private static void printAnswer(int offset, ByteBuffer b, int type) {
+		if (type == 0x0001) { //A type query
+			//IP <tab> [ip address] <tab> [seconds can cache] <tab> [auth | nonauth]
+			int ip1 = byteToInt(b.get(offset   + 11));
+			int ip2 = byteToInt(b.get(offset   + 12));
+			int ip3 = byteToInt(b.get(offset   + 13));
+			int ip4 = byteToInt(b.get(offset   + 14));
+			int ttl = byteToInt((byte) (b.get(offset   + 5) + b.get(offset   + 6) + b.get(offset   + 7) + b.get(offset   + 8)));
+			int temp = b.get(2);   
+			//mask with 000001000 to obtain AA from ANSWER
+			int mask = 0b000001000; //mask
+			if ((temp & mask) == 8) { //is authority
+				System.out.println("IP \t" + ip1 + "." + ip2 + "." + ip3 + "." + ip4 + "\t" + ttl + "\t auth");
+			}
+			else { //not authority
+				System.out.println("IP \t" + ip1 + "." + ip2 + "." + ip3 + "." + ip4 + "\t" + ttl + "\t nonauth");
+			}                   
+		}
+		else if (type == 0x0002) {//ns
+			//NS <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
+			int ttl = byteToInt((byte)(b.get(offset + 5) + b.get(offset + 6) + b.get(offset   + 7) + b.get(offset   + 8))); //get TTL from ANSWER
+			int temp = b.get(2);   
+			//mask with 000001000 to obtain AA from ANSWER
+			int mask = 0b000001000; //mask
+			String alias = readRData(b,offset   + 11);
+
+			if ((temp & mask) == 8) { //is auth
+				System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
+			}
+			else { //not auth
+				System.out.println("NS \t" + alias + "\t" + ttl + "\t nonauth");
+			}
+		}
+		else if (type == 0x000f) {//mx
+			//MX <tab> [alias] <tab> [pref] <tab> [seconds can cache] <tab> [auth | nonauth]
+			int pref = b.get(offset   + 11) + b.get(11 + offset   + 12); //get PREFERENCE
+			String alias = readRData(b,offset + 13); //get EXCHANGE
+			int ttl = byteToInt((byte)(b.get(offset   + 5) + b.get(offset   + 6) + b.get(offset   + 7) + b.get(offset   + 8))); 
+			int temp = b.get(2);   
+			//mask with 000001000 to obtain AA from ANSWER
+			int mask = 0b000001000; //mask
+
+			if ((temp & mask) == 8) { //is auth
+				System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t auth");
+			}
+			else { //not auth
+				System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t nonauth");
+			}
+		}
+		else if (type == 0x0005) {//cname
+			//CNAME <tab> [alias] <tab> [seconds can cache] <tab> [auth | nonauth]
+			int ttl = byteToInt((byte)(b.get(offset   + 5) + b.get(offset   + 6) + b.get(offset   + 7) + b.get(offset   + 8))); 
+			String alias = readRData(b, offset   + 11); //TODO: im not sure if alias is formatted the same way for cname as it is for ns
+			int temp = b.get(2);   
+			//mask with 000001000 to obtain AA from ANSWER
+			int mask = 0b000001000; //mask
+
+			if ((temp & mask) == 8) { //is auth
+				System.out.println("CNAME \t" + alias + "\t" + ttl + "\t auth");
+			}
+			else { //not auth
+				System.out.println("CNAME \t" + alias + "\t" + ttl + "\t nonauth");
+			}
+		}
+		else {
+			System.out.println("NOTFOUND");
+			System.exit(0);
 		}
 
-		return counter;
+	}
+
+	private static int findEnd(ByteBuffer b, int start) {
+		//int counter = 1;
+		int result = start;
+		//int curByte1 = b.get(result); //this is where QNAME starts
+		int curByte1 = b.get(result);
+		int curByte2 = b.get(result-1);
+		byte co = (byte) 192;
+		byte oc = (byte) 12;
+		
+		while (curByte1!=oc || curByte2!=co) {//we havent reached end of QNAME yet
+			result++;
+			curByte1 = b.get(result);
+			curByte2 = b.get(result-1);
+		}
+		return result++;
 	}
 
 	private static String readRData(ByteBuffer b, int start) {
-	    StringBuilder mysb = new StringBuilder(100);
+		StringBuilder mysb = new StringBuilder(100);
 		String result;
 		int num = b.get(start);
 		int index = start;
 
 		while (num != 0) {
-		  if (num == -64) { //pointer
-		    int offset = b.get(index + 1);
-		    result = mysb.toString().concat(readRData(b, offset));
-		    return result;
-		  }
-		  else {
-		    for(int i = 1; i <= num; i++) {
-              mysb.append(Character.toString((char) b.get(index + i)));   
-              //System.out.println(Character.toString((char) b.get(count + i)));
-          }
-          index = index + num + 1;
-          mysb.append('.');
-          num = b.get(index);
-		  }			
+			if (num == -64) { //pointer
+				int offset = b.get(index + 1);
+				result = mysb.toString().concat(readRData(b, offset));
+				return result;
+			}
+			else {
+				for(int i = 1; i <= num; i++) {
+					mysb.append(Character.toString((char) b.get(index + i)));   
+					//System.out.println(Character.toString((char) b.get(count + i)));
+				}
+				index = index + num + 1;
+				mysb.append('.');
+				num = b.get(index);
+			}			
 		}  
-	//	result = result.substring(0, result.length() - 2);
+		//	result = result.substring(0, result.length() - 2);
 		result = mysb.toString().substring(0, mysb.toString().length() - 1);
 		return result;
 	}
-	
+
 	private static void helper(ByteBuffer b) { //to help debug and look through byte buffer
 		int start = 0;
 		while (true) {
