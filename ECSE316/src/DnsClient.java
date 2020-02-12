@@ -108,7 +108,7 @@ public class DnsClient {
 					if(arcount>0)
 					System.out.println("***Additional Section (" + arcount + " records)***");
 					while (arcount > 0) { //there are things in additional
-						offset = findEnd(b, offset+2);
+						/*offset = findEnd(b, offset+2);
 						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
 						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
@@ -116,7 +116,7 @@ public class DnsClient {
 							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
 							System.exit(0);
 						}
-
+						*/
 						//printAnswer(offset, b, type);
 						arcount--;
 					}
