@@ -79,6 +79,7 @@ public class DnsClient {
 					ByteBuffer b = ByteBuffer.allocateDirect(1024);
 					b.put(receivePacket.getData());
 					b.flip();
+					/*
 					int consn=0;
 					for(int i =0; i < b.remaining();i++) {
 						System.out.println(String.format("%02x", b.get(i)));
@@ -87,7 +88,7 @@ public class DnsClient {
 						}
 						//if(consn > 20)
 						//	break;
-					}
+					}*/
 					
 					//process response
 					int respID = b.get(0) + b.get(1); //gets the ID of response
