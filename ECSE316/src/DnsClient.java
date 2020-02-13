@@ -89,44 +89,24 @@ public class DnsClient {
 					}
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
-					int offset = findEnd(b, 12);
-					
-					System.out.println("***Answer Section (" + anscount + " records)***");
-					for (int i = anscount; i > 0; i--) {
-						
-						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
-						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
-
-						if (theclass != 0x0001) {//error
-							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
-							//System.exit(0);
-						}
-						else {
-						printAnswer(offset, b, type);
-						}
-						offset = pointer + 2;
-
-					}
-					
 					int arcount = b.get(10) + b.get(11); //get ARCOUNT from HEADER
-					if(arcount>0)
-					System.out.println("***Additional Section (" + arcount + " records)***");
-					while (arcount > 0) { //there are things in additional
-						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
-						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
-
-						if (theclass != 0x0001) {//error
-							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
-							
-						}
-						else {
-							printAnswer(offset, b, type);
-						}
-						offset = pointer + 2;
-						arcount--;
+					int offset = findEnd(b, 12); //get inital offset
+					
+					//print answers
+					if(anscount>0) {
+						System.out.println("***Answer Section (" + anscount + " records)***");
+						offset = traverseResponse(anscount, b, offset);
 					}
+					
+					//print additionals
+					if(arcount>0) {
+						System.out.println("***Additional Section (" + arcount + " records)***");
+						offset = traverseResponse(arcount, b, offset);
+					}
+					
 
 					//we're done, so exit
+					clientSocket.close();
 					System.exit(0);
 
 				}catch (SocketTimeoutException ex) {
@@ -156,11 +136,29 @@ public class DnsClient {
 			System.out.println("ERROR \t Maximum number of retries "+ q.getMaxRetries() + " exceeded ");
 	}
 
+	private static int traverseResponse(int anscount, ByteBuffer b, int offset) {
+		for (int i = anscount; i > 0; i--) {
+			int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
+			int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
+
+			if (theclass != 0x0001) {//error
+				System.out.println("ERROR \t Unexpected response: Response is not of internet class");
+			}
+			else {
+			printAnswer(offset, b, type);
+			}
+			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
+			pointer = offset+10+RDL;
+			offset = pointer + 2;
+		}
+		
+		return offset;
+	}
+
 	private static void printAnswer(int offset, ByteBuffer b, int type) {
 		if (type == 0x0001) { //A type query
 			//IP <tab> [ip address] <tab> [seconds can cache] <tab> [auth | nonauth]
-			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
-			pointer = offset+10+RDL;
+			
 			int ip1 = byteToInt(b.get(offset   + 11));
 			int ip2 = byteToInt(b.get(offset   + 12));
 			int ip3 = byteToInt(b.get(offset   + 13));
@@ -183,8 +181,7 @@ public class DnsClient {
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
 			String alias = readRData(b,offset   + 11);
-			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
-			pointer = offset+10+RDL;
+
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
 			}
@@ -200,8 +197,6 @@ public class DnsClient {
 			int temp = b.get(2);   
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
-			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
-			pointer = offset+10+RDL;
 			
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t auth");
@@ -218,9 +213,6 @@ public class DnsClient {
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
 			
-			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
-			pointer = offset+10+RDL;
-			
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("CNAME \t" + alias + "\t" + ttl + "\t auth");
 			}
@@ -229,7 +221,7 @@ public class DnsClient {
 			}
 		}
 		else {
-			System.out.println("NOTFOUND");
+			System.out.println("NOT FOUND: response type not supported");
 			System.exit(0);
 		}
 
