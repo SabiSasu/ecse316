@@ -81,6 +81,8 @@ public class DnsClient {
 					b.flip();
 					/*
 					int consn=0;
+					
+					/*int consn=0;
 					for(int i =0; i < b.remaining();i++) {
 						System.out.println(String.format("%02x", b.get(i)));
 						if(b.get(i) == 0) {
@@ -100,11 +102,11 @@ public class DnsClient {
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
 					int authCount = b.get(8) + b.get(9); //number of records in Answer
-					int offset=10;
+					int offset = findEnd(b, 12);
 					
 					System.out.println("***Answer Section (" + anscount + " records)***");
 					for (int i = anscount; i > 0; i--) {
-						offset = findEnd(b, offset+5);
+						
 						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
 						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
@@ -115,6 +117,7 @@ public class DnsClient {
 						else {
 						printAnswer(offset, b, type);
 						}
+						offset = pointer + 2;
 
 					}
 					
@@ -168,6 +171,8 @@ public class DnsClient {
 	private static void printAnswer(int offset, ByteBuffer b, int type) {
 		if (type == 0x0001) { //A type query
 			//IP <tab> [ip address] <tab> [seconds can cache] <tab> [auth | nonauth]
+			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
+			pointer = offset+10+RDL;
 			int ip1 = byteToInt(b.get(offset   + 11));
 			int ip2 = byteToInt(b.get(offset   + 12));
 			int ip3 = byteToInt(b.get(offset   + 13));
@@ -190,7 +195,8 @@ public class DnsClient {
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
 			String alias = readRData(b,offset   + 11);
-
+			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
+			pointer = offset+10+RDL;
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
 			}
@@ -206,7 +212,9 @@ public class DnsClient {
 			int temp = b.get(2);   
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
-
+			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
+			pointer = offset+10+RDL;
+			
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("MX \t" + alias + "\t" + pref + "\t" + ttl + "\t auth");
 			}
@@ -221,7 +229,10 @@ public class DnsClient {
 			int temp = b.get(2);   
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
-
+			
+			int RDL = byteToInt((byte)(b.get(offset   + 9) + b.get(offset   + 10)));
+			pointer = offset+10+RDL;
+			
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("CNAME \t" + alias + "\t" + ttl + "\t auth");
 			}
