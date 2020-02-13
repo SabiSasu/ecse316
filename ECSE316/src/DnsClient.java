@@ -244,11 +244,11 @@ public class DnsClient {
 		byte oc = (byte) 12;
 		byte twod = (byte) 45;
 		byte two9 = (byte) 41;
-		byte a = (byte)106;
+		byte a = (byte)89;
 		byte c = (byte)148;
-		
+		int p = 80;
 		while ((curByte1!=oc || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
-			if((curByte1==twod || curByte1==two9 || curByte1 > (byte)50) && curByte2==co) {
+			if((curByte1==twod || curByte1==two9 || curByte1 >p) && curByte2==co) {
 				break;
 			}
 			//if(curByte2==co) {
