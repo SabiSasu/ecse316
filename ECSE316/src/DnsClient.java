@@ -1,9 +1,5 @@
 
-
-import java.util.Arrays;
 import java.util.Date;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,13 +8,16 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
+
+/*
+ * ECSE 316 Winter 2020 - Assig 1
+ * Sabina Sasu & Erica De Petrillo (Group 22)
+ */
 
 public class DnsClient {
 	static int pointer = 0;
+	
 	public static void main(String[] args) {
-		//java DnsClient [-t timeout] [-r max-retries] [-p port] [-mx|-ns] @server name 
-
 		//create query, only valid if @ character is not missing for mandatory fields
 		Query q = new Query();
 		if(((args[args.length - 2]).charAt(0) == '@')) {
@@ -41,15 +40,12 @@ public class DnsClient {
 		int retries = 0;
 
 		while (retries < q.getMaxRetries()) {
-			long startTime = new Date().getTime();
-
 			try {
 				DatagramSocket clientSocket = new DatagramSocket(); //initialize socket
-				//set timeout, might be too short to get a reply for default value
-				clientSocket.setSoTimeout(q.getTimeout()*1000); //TODO: FIX THIS TIMEOUT PROBLEM
+				clientSocket.setSoTimeout(q.getTimeout()*1000); //set timeout
 
 				try {
-					//get DNS server raw ip address
+					/*get DNS server raw ip address*/
 					byte[] adress = q.getByteServer();
 					InetAddress IPAddress = InetAddress.getByAddress(adress);
 					byte[] sendData = q.generateQuery(); //data to send
@@ -57,11 +53,13 @@ public class DnsClient {
 					//send packet
 					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, q.getPort());
 					clientSocket.send(sendPacket);
-					//receive data
+					
+					//receive data and get response time
 					byte[] receiveData = new byte[1024]; //data to receive
 					DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+					
+					long startTime = new Date().getTime();
 					clientSocket.receive(receivePacket);//throws timeout if times out
-
 					long endTime = new Date().getTime();
 					long totalTime = endTime - startTime;
 
@@ -72,25 +70,17 @@ public class DnsClient {
 					b.put(receivePacket.getData());
 					b.flip();
 					
-					/*
-					for(int i =0; i < b.remaining();i++) {
-						System.out.println(String.format("%02x", b.get(i)));
-						if(b.get(i) == 0) {
-							consn++;
-						}
-					}*/
-					
 					//process response
 					int respID = b.get(0) + b.get(1); //gets the ID of response
 
-					if (q.getRequestID() != respID) { //TODO: DEAL WITH ERROR compare response and query IDs
+					if (q.getRequestID() != respID) {
 						System.out.println("ERROR \t Unexpected response: ID in reply does not match query ID");
 						System.exit(0);
 					}
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
 					int arcount = b.get(10) + b.get(11); //get ARCOUNT from HEADER
-					int offset = findEnd(b, 12); //get inital offset
+					int offset = findFirstOffsetP(b, 12); //get inital offset
 					
 					//print answers
 					if(anscount>0) {
@@ -110,6 +100,7 @@ public class DnsClient {
 					System.exit(0);
 
 				}catch (SocketTimeoutException ex) {
+					//we get a timeout, so increase amount of tries and loop again
 					retries++;
 					continue;
 				} catch (SocketException e) {
@@ -122,20 +113,20 @@ public class DnsClient {
 					System.out.println("ERROR\tIO Exception");
 					e.printStackTrace();
 				} finally{
-					//closing socket no matter if we get an exception or not
+					//closing socket if we get an exception
 					clientSocket.close();
 				}
 			} catch (SocketException e1) {
 				System.out.println("ERROR\tException when creating socket");
 				e1.printStackTrace();
 			}
-
-
 		}
+		//exceed amount of retries, print error and terminate
 		if(retries >= q.getMaxRetries())
 			System.out.println("ERROR \t Maximum number of retries "+ q.getMaxRetries() + " exceeded ");
 	}
-
+	
+	/* Read response type, class and print content, then update pointer*/
 	private static int traverseResponse(int anscount, ByteBuffer b, int offset) {
 		for (int i = anscount; i > 0; i--) {
 			int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
@@ -154,7 +145,8 @@ public class DnsClient {
 		
 		return offset;
 	}
-
+	
+	/*Print response*/
 	private static void printAnswer(int offset, ByteBuffer b, int type) {
 		if (type == 0x0001) { //A type query
 			//IP <tab> [ip address] <tab> [seconds can cache] <tab> [auth | nonauth]
@@ -227,7 +219,7 @@ public class DnsClient {
 
 	}
 
-	private static int findEnd(ByteBuffer b, int start) {
+	private static int findFirstOffsetP(ByteBuffer b, int start) {
 		int result = start;
 		int curByte1 = b.get(result);
 		int curByte2 = b.get(result-1);
@@ -246,6 +238,7 @@ public class DnsClient {
 		return result++;
 	}
 
+	
 	private static String readRData(ByteBuffer b, int start) {
 		StringBuilder mysb = new StringBuilder(100);
 		String result;
@@ -261,24 +254,14 @@ public class DnsClient {
 			else {
 				for(int i = 1; i <= num; i++) {
 					mysb.append(Character.toString((char) b.get(index + i)));   
-					//System.out.println(Character.toString((char) b.get(count + i)));
 				}
 				index = index + num + 1;
 				mysb.append('.');
 				num = b.get(index);
 			}			
 		}  
-		//	result = result.substring(0, result.length() - 2);
 		result = mysb.toString().substring(0, mysb.toString().length() - 1);
 		return result;
-	}
-
-	private static void helper(ByteBuffer b) { //to help debug and look through byte buffer
-		int start = 0;
-		while (true) {
-			int curByte = b.get(start);
-			start++;
-		}
 	}
 
 	private static int byteToInt(byte b) {
