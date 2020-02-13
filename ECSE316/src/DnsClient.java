@@ -37,8 +37,7 @@ public class DnsClient {
 		System.out.println("DnsClient sending request for " + q.getName());
 		System.out.println("Server: " + q.getServer()); 
 		System.out.println("Request type: " + q.getQuery().toString());
-
-
+		
 		int retries = 0;
 
 		while (retries < q.getMaxRetries()) {
@@ -55,11 +54,6 @@ public class DnsClient {
 					InetAddress IPAddress = InetAddress.getByAddress(adress);
 					byte[] sendData = q.generateQuery(); //data to send
 
-					//printing query in hexadecimals for testing
-					/*for(int i =0; i < sendData.length;i++) {
-						System.out.println(String.format("%02x", sendData[i]));
-					}*/
-
 					//send packet
 					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, q.getPort());
 					clientSocket.send(sendPacket);
@@ -71,8 +65,6 @@ public class DnsClient {
 					long endTime = new Date().getTime();
 					long totalTime = endTime - startTime;
 
-					
-					
 					System.out.println("Response received after " + totalTime + " seconds (" + retries + " retries)");
 
 					//format received information
@@ -80,14 +72,12 @@ public class DnsClient {
 					b.put(receivePacket.getData());
 					b.flip();
 					
-					/*int consn=0;
+					/*
 					for(int i =0; i < b.remaining();i++) {
 						System.out.println(String.format("%02x", b.get(i)));
 						if(b.get(i) == 0) {
 							consn++;
 						}
-						//if(consn > 20)
-						//	break;
 					}*/
 					
 					//process response
@@ -99,7 +89,6 @@ public class DnsClient {
 					}
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
-					int authCount = b.get(8) + b.get(9); //number of records in Answer
 					int offset = findEnd(b, 12);
 					
 					System.out.println("***Answer Section (" + anscount + " records)***");
@@ -123,16 +112,17 @@ public class DnsClient {
 					if(arcount>0)
 					System.out.println("***Additional Section (" + arcount + " records)***");
 					while (arcount > 0) { //there are things in additional
-						offset = findEnd(b, offset+2);
 						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
 						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
 						if (theclass != 0x0001) {//error
 							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
-							System.exit(0);
+							
 						}
-						
-						printAnswer(offset, b, type);
+						else {
+							printAnswer(offset, b, type);
+						}
+						offset = pointer + 2;
 						arcount--;
 					}
 
@@ -251,25 +241,12 @@ public class DnsClient {
 		int curByte2 = b.get(result-1);
 		byte co = (byte) 192;
 		byte oc = (byte) 12;
-		byte twod = (byte) 45;
-		byte two9 = (byte) 41;
-		byte a = (byte)89;
-		byte c = (byte)148;
-		int p = 80;
 		while ((curByte1!=oc || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
-			if((curByte1==twod || curByte1==two9 || curByte1 >p) && curByte2==co) {
-				break;
-			}
-			//if(curByte2==co) {
-			//	break;
-			//}
-			//System.out.println(String.format("%02X", curByte1) + ", " + String.format("%02X", curByte2));
 			result++;
 			curByte1 = b.get(result);
 			curByte2 = b.get(result-1);
 			
 		}
-		//System.out.println(result);
 		if(result == 1023) {
 			System.out.println("Reached end of buffer response\nTerminating");
 			System.exit(0);
