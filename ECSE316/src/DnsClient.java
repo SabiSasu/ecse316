@@ -80,15 +80,15 @@ public class DnsClient {
 					b.put(receivePacket.getData());
 					b.flip();
 					int consn=0;
-					for(int i =0; i < b.capacity();i++) {
+					for(int i =0; i < b.remaining();i++) {
 						System.out.println(String.format("%02x", b.get(i)));
 						if(b.get(i) == 0) {
 							consn++;
 						}
-						if(consn > 20)
-							break;
+						//if(consn > 20)
+						//	break;
 					}
-
+					
 					//process response
 					int respID = b.get(0) + b.get(1); //gets the ID of response
 
@@ -103,16 +103,17 @@ public class DnsClient {
 					
 					System.out.println("***Answer Section (" + anscount + " records)***");
 					for (int i = anscount; i > 0; i--) {
-						offset = findEnd(b, offset+2);
+						offset = findEnd(b, offset+5);
 						int type = b.get(offset + 1) + b.get(offset + 2); //get TYPE from ANSWER
 						int theclass = b.get(offset + 3) + b.get(offset + 4); //get CLASS from ANSWER
 
 						if (theclass != 0x0001) {//error
 							System.out.println("ERROR \t Unexpected response: Response is not of internet class");
-							System.exit(0);
+							//System.exit(0);
 						}
-
+						else {
 						printAnswer(offset, b, type);
+						}
 
 					}
 					
@@ -241,17 +242,24 @@ public class DnsClient {
 		byte co = (byte) 192;
 		byte oc = (byte) 12;
 		byte twod = (byte) 45;
+		byte two9 = (byte) 41;
+		byte a = (byte)106;
+		byte c = (byte)148;
 		
 		while ((curByte1!=oc || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
-			if(curByte1==twod && curByte2==co) {
+			if((curByte1==twod || curByte1==two9 || curByte1 > (byte)50) && curByte2==co) {
 				break;
 			}
+			//if(curByte2==co) {
+			//	break;
+			//}
 			//System.out.println(String.format("%02X", curByte1) + ", " + String.format("%02X", curByte2));
 			result++;
 			curByte1 = b.get(result);
 			curByte2 = b.get(result-1);
 			
 		}
+		//System.out.println(result);
 		if(result == 1023) {
 			System.out.println("Reached end of buffer response\nTerminating");
 			System.exit(0);
