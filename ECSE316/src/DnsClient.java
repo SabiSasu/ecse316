@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
 public class DnsClient {
-	int pointer;
+	static int pointer = 0;
 	public static void main(String[] args) {
 		//java DnsClient [-t timeout] [-r max-retries] [-p port] [-mx|-ns] @server name 
 
@@ -79,8 +79,6 @@ public class DnsClient {
 					ByteBuffer b = ByteBuffer.allocateDirect(1024);
 					b.put(receivePacket.getData());
 					b.flip();
-					/*
-					int consn=0;
 					
 					/*int consn=0;
 					for(int i =0; i < b.remaining();i++) {
