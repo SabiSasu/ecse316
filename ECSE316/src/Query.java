@@ -154,5 +154,17 @@ public class Query {
 		buff.get(result, 0, result.length);
 		return result;
 	}
+	
+	public int getDomainNameLenght() {
+		int a = 0;
+		String[] s = this.name.split("\\.");
+		a=s.length;
+		for(int i = 0; i < s.length; i++) {
+			a+=s[i].length();
+		}
+		System.out.println(a);
+		return a;
+		
+	}
 
 }

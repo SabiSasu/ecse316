@@ -80,8 +80,9 @@ public class DnsClient {
 
 					int anscount = b.get(6) + b.get(7); //number of records in Answer
 					int arcount = b.get(10) + b.get(11); //get ARCOUNT from HEADER
-					int offset = findFirstOffsetP(b, 12); //get inital offset
-					
+					//int offset = findFirstOffsetP(b, 12);
+					int offset = 12+q.getDomainNameLenght()+6;
+					System.out.println(offset +", "+anscount);
 					//print answers
 					if(anscount>0) {
 						System.out.println("***Answer Section (" + anscount + " records)***");
@@ -172,7 +173,7 @@ public class DnsClient {
 			int temp = b.get(2);   
 			//mask with 000001000 to obtain AA from ANSWER
 			int mask = 0b000001000; //mask
-			String alias = readRData(b,offset   + 11);
+			String alias = readRData(b,offset + 11);
 
 			if ((temp & mask) == 8) { //is auth
 				System.out.println("NS \t" + alias + "\t" + ttl + "\t auth");
@@ -225,7 +226,8 @@ public class DnsClient {
 		int curByte2 = b.get(result-1);
 		byte co = (byte) 192;
 		byte oc = (byte) 12;
-		while ((curByte1!=oc || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
+		byte two9 = (byte) 49;
+		while (((curByte1!=oc && curByte1!=two9) || curByte2!=co) && result < 1023) {//we havent reached end of QNAME yet
 			result++;
 			curByte1 = b.get(result);
 			curByte2 = b.get(result-1);
