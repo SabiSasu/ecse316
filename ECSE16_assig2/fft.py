@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm as ln
 
 
 	
@@ -13,8 +13,25 @@ def dft(x):
 	N = x.shape[0]
 	n = np.arange(N)
 	k = n.reshape((N, 1))
-	M = np.exp(-2j * np.pi * k * n / N)
-	return np.dot(M, x)
+	T = np.exp(-2j * np.pi * k * n / N)
+	return np.dot(T, x)
+
+def twoDDFT(x):
+    x = np.asarray(x, dtype=float)
+    N = x.shape[0] #rows
+    M = x.shape[1] #columns
+    n = np.arange(N)
+    m = np.arange(M)
+    k = n.reshape((M, 1))
+    l = m.reshape((N, 1))
+    T = np.exp(-2j * np.pi * k * m / M) #inner
+    U = np.exp(-2j * np.pi * l * n / N) #outer
+    sum = 0
+
+    for i in range(N):
+        y = np.dot(T, x[i]) #the row
+        sum = sum + y * U
+    return sum
 
 def FFT(x):
 	x = np.asarray(x, dtype=float)
