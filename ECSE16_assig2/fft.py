@@ -40,8 +40,8 @@ def FFT(x):
 
 	if N % 2 > 0:
 		raise ValueError("size of x must be a power of 2")
-	elif N <= 2:  # this cutoff should be optimized
-		return dft(x)
+	elif N <= 2: 
+		return twoDDFT(x)
 	else:
 		X_even = FFT(x[::2])
 		X_odd = FFT(x[1::2])
@@ -55,35 +55,39 @@ def mode_1(image):
 	width = im.shape[1]
 	height = im.shape[0]
 	
-	print(width)
-	print(height)
+	#print(width)
+	#print(height)
 	while np.log2(width)%1 != 0:
 		width = width+1
 	while np.log2(height)%1 != 0:
 		height = height+1
 	dim = (width, height)
 	resized = cv2.resize(im, dim, interpolation = cv2.INTER_AREA) 
-	print(resized.shape[1])
-	print(resized.shape[0])
+	#print(resized.shape[1])
+	#print(resized.shape[0])
 	size = len(resized)
-	cv2.imshow("Image Resized", resized)
-	# construct a grayscale histogram
-	x = np.random.random(8)
-	im_fft = np.fft.fft(resized)
-	im_fft2 = np.fft.fft(x)
-	print(resized)
-	print("FFT1")
-	print(im_fft)
-	print(im_fft2)
-	fast_dft = FFT(resized)
+	#cv2.imshow("Image Resized", resized)
 	
-	print(fast_dft)
+	#--------------#
+	#TEST
+	x = np.random.random((2,2))
+	print(x)
+	print(np.fft.fft2(x))
+	print(twoDDFT(x))
+	#END TEST
+	#--------------#
+	
 	# A logarithmic colormap
 	plt.figure()
-	plt.imshow(np.abs(im_fft), norm=LogNorm(vmin=5))
+	plt.imshow(np.abs(np.fft.fft2(resized)), norm=LogNorm(vmin=5))
 	plt.colorbar()
-	plt.title('Fourier transform')
-	plt.show()
+	plt.title('Correct Fourier transform')
+	#plt.show()
+	plt.figure()
+	plt.imshow(np.abs(twoDDFT(resized)), norm=LogNorm(vmin=5))
+	plt.colorbar()
+	plt.title('Our Fourier transform')
+	#plt.show()
 	cv2.waitKey(0)
 
 def mode_2(image):
@@ -122,26 +126,17 @@ if __name__ == '__main__':
 			exit()
 		i = i+2
 
-print("test")
-im = cv2.imread(image)
-width = im.shape[1]
-height = im.shape[0]
-print(twoDDFT(im))
-print("end test")
-
-#i had to comment out this part to test mine
-#however now when i uncomment it it keeps saying smth abt a whitespace error and idk how to deal with it
-#if mode == 1:
-#	 mode_1(image)
-#elif mode == 2:
-#		    mode_2(image)
- #           elif mode == 3:
-	#	    mode_3(image)
-	 #   elif mode == 4:
-		#    mode_4(image)
-	    #else:
-		 #   print("Mode has to be between 1 and 4")
-		  #  exit()
+	if mode == 1:
+		mode_1(image)
+	elif mode == 2:
+		mode_2(image)
+	elif mode == 3:
+		mode_3(image)
+	elif mode == 4:
+		mode_4(image)
+	else:
+		print("Mode has to be between 1 and 4")
+		exit()
 
 
 	
