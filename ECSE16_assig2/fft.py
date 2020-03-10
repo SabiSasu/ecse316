@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
-from matplotlib.colors import LogNorm as ln
+from matplotlib.colors import LogNorm
 
 
 	
@@ -20,18 +20,19 @@ def twoDDFT(x):
     x = np.asarray(x, dtype=float)
     N = x.shape[0] #rows
     M = x.shape[1] #columns
-    n = np.arange(N)
-    m = np.arange(M)
-    k = n.reshape((M, 1))
-    l = m.reshape((N, 1))
+    n = np.arange(N) #array from 0 to N-1
+    m = np.arange(M) #array from 0 to M-1
+    k = m.reshape((M, 1))
+    l = n.reshape((1, N))
     T = np.exp(-2j * np.pi * k * m / M) #inner
     U = np.exp(-2j * np.pi * l * n / N) #outer
-    sum = 0
+   # newarr = [[0 for x in range(M)] for y in range(N)]
 
-    for i in range(N):
-        y = np.dot(T, x[i]) #the row
-        sum = sum + y * U
-    return sum
+    for i in range(N): #for each row
+        x[i] = np.dot(T, x[i])
+    for a in range(M): #for each column
+        x[:,a] = np.dot(U, x[:,a])
+    return x
 
 def FFT(x):
 	x = np.asarray(x, dtype=float)
@@ -120,17 +121,29 @@ if __name__ == '__main__':
 			print("Arguments cannot be parsed")
 			exit()
 		i = i+2
+
+print("test")
+im = cv2.imread(image)
+width = im.shape[1]
+height = im.shape[0]
+print(twoDDFT(im))
+print("end test")
+
+#i had to comment out this part to test mine
+#however now when i uncomment it it keeps saying smth abt a whitespace error and idk how to deal with it
+#if mode == 1:
+#	 mode_1(image)
+#elif mode == 2:
+#		    mode_2(image)
+ #           elif mode == 3:
+	#	    mode_3(image)
+	 #   elif mode == 4:
+		#    mode_4(image)
+	    #else:
+		 #   print("Mode has to be between 1 and 4")
+		  #  exit()
+
+
 	
-	if mode == 1:
-		mode_1(image)
-	elif mode == 2:
-		mode_2(image)
-	elif mode == 3:
-		mode_3(image)
-	elif mode == 4:
-		mode_4(image)
-	else:
-		print("Mode has to be between 1 and 4")
-		exit()
 
 	
