@@ -5,8 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 from matplotlib.colors import LogNorm
-
-
+import time
 	
 def dft(x):
 	x = np.asarray(x, dtype=float)
@@ -98,6 +97,53 @@ def mode_3(image):
 	
 def mode_4(image):
 	print(image)
+	power = [5,6,7,8,9,10,11,12,13]
+	runtimeN = [0,0,0,0,0,0,0,0,0]
+	standdevN = [0,0,0,0,0,0,0,0,0] 
+	runtimeF = [0,0,0,0,0,0,0,0,0]
+	standdevF = [0,0,0,0,0,0,0,0,0] 
+	i=0
+	
+	while i < len(power):
+		j=0
+		timeN = [0,0,0,0,0,0,0,0,0,0] 
+		timeF = [0,0,0,0,0,0,0,0,0,0] 
+		
+		#run it 10 times
+		while j < 10:
+			x = np.random.random((power[i],power[i]))
+			
+			# naive run
+			startN = int(round(time.time() * 1000))
+			naive = np.fft.fft(x) #replace by our own algorithm
+			endN = int(round(time.time() * 1000))
+			timeN[j] = endN-startN
+			
+			# fft run
+			startF = int(round(time.time() * 1000))
+			fft = np.fft.fft2(x) #replace by our own algorithm
+			endF = int(round(time.time() * 1000))
+			timeF[j] = endF-startF
+			
+			j=j+1
+		#compute run times
+		runtimeN[i]= np.mean(timeN)
+		standdevN[i] = np.std(timeN)
+		runtimeF[i]= np.mean(timeF)
+		standdevF[i] = np.std(timeF)
+		
+		i=i+1
+	
+	#plot graph, x = power, y = runtime, 2 lines = naive and fft
+	plt.errorbar(power, runtimeN, yerr=standdevN, xerr=standdevN,  marker='o', markerfacecolor='blue', markersize=5, color='skyblue', linewidth=2, label='naive')
+	plt.errorbar(power, runtimeF, yerr=standdevF, xerr=standdevF, marker='o', markerfacecolor='pink', markersize=5, color='black', linewidth=2, label='FFT')
+	plt.ylabel('Runtime (milliseconds)')
+	plt.xlabel('Power')
+	plt.title('Runtime of Naive vs FFT methods')
+	plt.legend()
+	plt.show()
+	cv2.waitKey(0)
+	
 
 if __name__ == '__main__':
 	n = sys.argv
