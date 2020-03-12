@@ -16,21 +16,49 @@ def dft(x):
 	return np.dot(T, x)
 
 def twoDDFT(x):
-    x = np.asarray(x, dtype=float)
+    x = np.asarray(x, dtype=complex)
     N = x.shape[0] #rows
     M = x.shape[1] #columns
     n = np.arange(N) #array from 0 to N-1
-    m = np.arange(M) #array from 0 to M-1
+    m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
     k = m.reshape((M, 1))
     l = n.reshape((1, N))
     T = np.exp(-2j * np.pi * k * m / M) #inner
     U = np.exp(-2j * np.pi * l * n / N) #outer
-   # newarr = [[0 for x in range(M)] for y in range(N)]
 
-    for i in range(N): #for each row
-        x[i] = np.dot(T, x[i])
+    #W = np.exp(-2j * np.pi * m / M) #inner
+    #Z = np.exp(-2j * np.pi * n / N) #outer
+    #coeffs = np.zeros((N, M))
+    #for a in range (N):
+     #   for b in range (M):
+    #        coeffs[a][b] = W * a * Z * b
+   # print(coeffs)
+   # newarr = [[0 for x in range(M)] for y in range(N)]
+    #print(l)
+    #print(n)
+   # print(m)
+   # print(M)
+   # print(k)
+    #print(U) 
+    print(T)
+    #print(np.matmul(T, U))
+   # print(x[0])
+    #print(x[:,0].reshape(M, 1))
     for a in range(M): #for each column
-        x[:,a] = np.dot(U, x[:,a])
+        # print(x[:,a])
+         x[:,a] = np.dot(T, x[:,a])
+       #  print(x)
+       # print(x[:,a])
+    for i in range(N): #for each row
+        x[i] = np.dot(U, x[i])
+       # print(x[i])
+      #  print(x)
+    # print(x)
+    
+#    for a in range(M):
+#        for b in range(N):
+#            x[a,b] = np.dot(U, x[:,b])*np.dot(T, x[a])
+
     return x
 
 def FFT(x):
@@ -65,8 +93,8 @@ def mode_1(image):
 	#print(resized.shape[1])
 	#print(resized.shape[0])
 	size = len(resized)
-	#cv2.imshow("Image Resized", resized)
-	
+	cv2.imshow("Image Resized", resized)
+
 	#--------------#
 	#TEST
 	x = np.random.random((2,2))
@@ -78,15 +106,15 @@ def mode_1(image):
 	
 	# A logarithmic colormap
 	plt.figure()
-	plt.imshow(np.abs(np.fft.fft2(resized)), norm=LogNorm(vmin=5))
+#	plt.imshow(np.abs(np.fft.fft2(resized)), norm=LogNorm(vmin=5))
 	plt.colorbar()
 	plt.title('Correct Fourier transform')
-	#plt.show()
+#	plt.show()
 	plt.figure()
-	plt.imshow(np.abs(twoDDFT(resized)), norm=LogNorm(vmin=5))
+#	plt.imshow(np.abs(twoDDFT(resized)), norm=LogNorm(vmin=5))
 	plt.colorbar()
 	plt.title('Our Fourier transform')
-	#plt.show()
+#	plt.show()
 	cv2.waitKey(0)
 
 def mode_2(image):
