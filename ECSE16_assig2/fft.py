@@ -204,38 +204,60 @@ def mode_2(image):
     #-----------------#
     #TEST
     x = np.random.random((2,2))
-    print("x")
-    print(x)
-    print(np.fft.ifft2(x))
-    print(invtwoDFFT(x))
+    #print("x")
+    #print(x)
+    #print(np.fft.ifft2(x))
+    #print(invtwoDFFT(x))
     #END TEST
     #-----------------#
 
     twodfft = twoDFFTv2(resized)
+    count = 0
     for a in range(twodfft.shape[1]):
         for b in range(twodfft.shape[0]):
-            if twodfft[b][a] >= 0.25 * np.pi or twodfft[b][a] <= 0.75 * np.pi: #tweak later
+            #print(twodfft[b][a])
+            y = abs(twodfft[b][a] / (np.pi * 2))
+            while (y > 1):
+                y = y - 1
+            #now y is btwn 0 and 1
+            if y > 0.35 and y < 0.65:
+            #if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
                 twodfft[b][a] = 0
-
+            else:
+                count = count + 1
     #we removed high frequencies and replaced them by 0
     #output to cmd line number of nonzeroes we used and fraction???
-
+    print("number of non-zero entries we are using")
+    print(count)
+    print("fraction they represent on original fourrier coefficients")
+    print(count / (twodfft.shape[1] * twodfft.shape[0]))
     itwodfft = invtwoDFFT(twodfft)
     correcti2dfft = np.fft.ifft2(twodfft)
 
     # A logarithmic colormap
-    plt.figure()
-    plt.imshow(np.abs(correcti2dfft), norm=LogNorm(vmin=5))
-    plt.colorbar()
-    plt.title('Correct Fourier transform')
-    
-    plt.figure()
-    plt.imshow(np.abs(itwodfft), norm=LogNorm(vmin=5))
-    plt.colorbar()
-    plt.title('Our Fourier transform')
-    plt.show()
+    fig, axs = plt.subplots(1, 2)
+    axs[0].imshow(resized, cmap='gray')
+    axs[0].set_title('Resized Image')
+
+    im2 = axs[1].imshow(itwodfft.real, cmap='gray')
+    axs[1].set_title('Our Denoised Image')
+    #fig.colorbar(im2, ax=axs[1])
     plt.show()
     cv2.waitKey(0)
+
+    # A logarithmic colormap
+    #plt.figure()
+    #plt.imshow(np.abs(correcti2dfft), norm=LogNorm(vmin=5))
+    #plt.colorbar()
+    #plt.title('Correct Fourier transform')
+    
+    #plt.figure()
+    #plt.imshow(np.abs(itwodfft), norm=LogNorm(vmin=5))
+    #plt.colorbar()
+    #plt.title('Our Fourier transform')
+    #plt.show()
+    #plt.show()
+    #cv2.waitKey(0)
 
 
 def mode_3(image):
