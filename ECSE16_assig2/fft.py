@@ -8,12 +8,20 @@ from matplotlib.colors import LogNorm
 import time
 	
 def dft(x):
-	x = np.asarray(x, dtype=float)
+	x = np.asarray(x, dtype=complex)
 	N = x.shape[0]
 	n = np.arange(N)
 	k = n.reshape((N, 1))
 	T = np.exp(-2j * np.pi * k * n / N)
 	return np.dot(T, x)
+
+def invdft(x):
+    x = np.asarray(x, dtype=complex)
+    N = x.shape[0]
+    n = np.arange(N)
+    k = n.reshape((N,1))
+    T = np.exp(2j * np.pi * k * n / N)
+    return ((np.dot(T, x)) / N)
 
 def twoDDFT(x):
     x = np.asarray(x, dtype=complex)
@@ -62,7 +70,7 @@ def twoDDFT(x):
     return x
 
 def FFT(x):
-	x = np.asarray(x, dtype=float)
+	x = np.asarray(x, dtype=complex)
 	N = x.shape[0]
 
 	if N % 2 > 0:
@@ -75,7 +83,20 @@ def FFT(x):
 		factor = np.exp(-2j * np.pi * np.arange(N) / N)
 		return np.concatenate([X_even + factor[:int(N/2)] * X_odd, X_even + factor[int(N/2):] * X_odd])
 
-		
+def invFFT(x):
+    x = np.asarray(x, dtype=complex)
+    N = x.shape[0]
+
+    if N % 2 > 0:  
+        raise ValueError("size of x must be a power of 2")
+    elif N <= 32: #tweek later
+        return invdft(x)
+    else:
+        X_even = invFFT(x[::2])
+        X_odd = invFFT(x[1::2])
+        factor = np.exp(-2j * np.pi * np.arange(N) / N)
+        return np.concatenate([X_even + factor[:int(N/2)] * X_odd, X_even + factor[int(N/2):] * X_odd])
+
 def twoDFFTv2(x):
 	x = np.asarray(x, dtype=complex)
 	N = x.shape[0] #rows
@@ -84,19 +105,36 @@ def twoDFFTv2(x):
 	m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
 	k = m.reshape((M, 1))
 	l = n.reshape((1, N))
-	T = np.exp(-2j * np.pi * k * m / M) #inner
-	U = np.exp(-2j * np.pi * l * n / N) #outer
+#	T = np.exp(-2j * np.pi * k * m / M) #inner
+#	U = np.exp(-2j * np.pi * l * n / N) #outer
 
 	for i in range(N): #for each row
 		#x[i] = np.dot(U, FFT(x[i]))
-		x[i] = FFT(x[i])
+		x[i] = invFFT(x[i])
 	for a in range(M): #for each column
 		#x[:,a] = np.dot(T, FFT(x[:,a]))
-		x[:,a] = FFT(x[:,a])
+		x[:,a] = invFFT(x[:,a])
 	
 	return x
 
-	
+def invtwoDFFT(x):
+    x = np.asarray(x, dtype=complex)
+    N = x.shape[0] #rows
+    M = x.shape[1] #columns
+    n = np.arange(N) #array from 0 to N-1
+    m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
+    k = m.reshape((M, 1))
+    l = n.reshape((1, N))
+
+    for i in range(N): #for each row
+		#x[i] = np.dot(U, FFT(x[i]))
+        x[i] = invFFT(x[i])
+    for a in range(M): #for each column
+		#x[:,a] = np.dot(T, FFT(x[:,a]))
+        x[:,a] = invFFT(x[:,a])
+
+    return x
+
 def mode_1(image):
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
@@ -149,8 +187,57 @@ def mode_1(image):
 	cv2.waitKey(0)
 
 def mode_2(image):
-	print(image)
-	
+    im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+    width = im.shape[1]
+    height = im.shape[0]
+	# calculating new sizes to be powers of 2
+    while np.log2(width)%1 != 0:
+        width = width+1		
+    while np.log2(height)%1 != 0:
+        height = height+1
+	#padding image with zeros
+    resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
+
+	#cv2.imshow("Image Resized", im)
+    cv2.imshow("Image Resized", resized)
+
+    #-----------------#
+    #TEST
+    x = np.random.random((2,2))
+    print("x")
+    print(x)
+    print(np.fft.ifft2(x))
+    print(invtwoDFFT(x))
+    #END TEST
+    #-----------------#
+
+    twodfft = twoDFFTv2(resized)
+    for a in range(twodfft.shape[1]):
+        for b in range(twodfft.shape[0]):
+            if twodfft[b][a] >= 0.25 * np.pi or twodfft[b][a] <= 0.75 * np.pi: #tweak later
+                twodfft[b][a] = 0
+
+    #we removed high frequencies and replaced them by 0
+    #output to cmd line number of nonzeroes we used and fraction???
+
+    itwodfft = invtwoDFFT(twodfft)
+    correcti2dfft = np.fft.ifft2(twodfft)
+
+    # A logarithmic colormap
+    plt.figure()
+    plt.imshow(np.abs(correcti2dfft), norm=LogNorm(vmin=5))
+    plt.colorbar()
+    plt.title('Correct Fourier transform')
+    
+    plt.figure()
+    plt.imshow(np.abs(itwodfft), norm=LogNorm(vmin=5))
+    plt.colorbar()
+    plt.title('Our Fourier transform')
+    plt.show()
+    plt.show()
+    cv2.waitKey(0)
+
+
 def mode_3(image):
 	print(image)
 	
