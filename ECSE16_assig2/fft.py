@@ -110,7 +110,7 @@ def mode_1(image):
 	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
 	#cv2.imshow("Image Resized", im)
-	cv2.imshow("Image Resized", resized)
+	#cv2.imshow("Image Resized", resized)
 	
 	#--------------#
 	#TEST
@@ -128,16 +128,23 @@ def mode_1(image):
 	twodfft = twoDFFTv2(resized)
 	
 	# A logarithmic colormap
-	plt.figure()
-	plt.imshow(np.abs(correctfft), norm=LogNorm(vmin=5))
-	plt.colorbar()
-	plt.title('Correct Fourier transform')
+	fig, axs = plt.subplots(1, 2)
+	axs[0].imshow(resized, cmap='gray')
+	axs[0].set_title('Resized Image')
+
+	im2 = axs[1].imshow(np.abs(twodfft), norm=LogNorm(vmin=5))
+	axs[1].set_title('Our 2D Fast Fourier Transform')
+	fig.colorbar(im2, ax=axs[1])
 	
-	plt.figure()
-	plt.imshow(np.abs(twodfft), norm=LogNorm(vmin=5))
-	plt.colorbar()
-	plt.title('Our Fourier transform')
-	plt.show()
+	# A logarithmic colormap
+	fig, axs = plt.subplots(1, 2)
+	axs[0].imshow(resized, cmap='gray')
+	axs[0].set_title('Resized Image')
+
+	im2 = axs[1].imshow(np.abs(correctfft), norm=LogNorm(vmin=5))
+	axs[1].set_title('NP Library 2D Fourier Transform')
+	fig.colorbar(im2, ax=axs[1])
+
 	plt.show()
 	cv2.waitKey(0)
 
