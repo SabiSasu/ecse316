@@ -67,54 +67,78 @@ def FFT(x):
 
 	if N % 2 > 0:
 		raise ValueError("size of x must be a power of 2")
-	elif N <= 2: 
-		return twoDDFT(x)
+	elif N <= 32: #tweek later
+		return dft(x)
 	else:
 		X_even = FFT(x[::2])
 		X_odd = FFT(x[1::2])
 		factor = np.exp(-2j * np.pi * np.arange(N) / N)
-		X_even = np.concatenate([X_even, X_even])
-		X_odd = np.concatenate([X_odd, X_odd])
-		return X_even + factor * X_odd
+		return np.concatenate([X_even + factor[:int(N/2)] * X_odd, X_even + factor[int(N/2):] * X_odd])
+
 		
+def twoDFFTv2(x):
+	x = np.asarray(x, dtype=complex)
+	N = x.shape[0] #rows
+	M = x.shape[1] #columns
+	n = np.arange(N) #array from 0 to N-1
+	m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
+	k = m.reshape((M, 1))
+	l = n.reshape((1, N))
+	T = np.exp(-2j * np.pi * k * m / M) #inner
+	U = np.exp(-2j * np.pi * l * n / N) #outer
+
+	for i in range(N): #for each row
+		#x[i] = np.dot(U, FFT(x[i]))
+		x[i] = FFT(x[i])
+	for a in range(M): #for each column
+		#x[:,a] = np.dot(T, FFT(x[:,a]))
+		x[:,a] = FFT(x[:,a])
+	
+	return x
+
+	
 def mode_1(image):
-	im = cv2.imread(image)
+	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
 	height = im.shape[0]
-	
-	#print(width)
-	#print(height)
+	# calculating new sizes to be powers of 2
 	while np.log2(width)%1 != 0:
-		width = width+1
+		width = width+1		
 	while np.log2(height)%1 != 0:
 		height = height+1
-	dim = (width, height)
-	resized = cv2.resize(im, dim, interpolation = cv2.INTER_AREA) 
-	#print(resized.shape[1])
-	#print(resized.shape[0])
-	size = len(resized)
-	cv2.imshow("Image Resized", resized)
+	#padding image with zeros
+	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
+	#cv2.imshow("Image Resized", im)
+	cv2.imshow("Image Resized", resized)
+	
 	#--------------#
 	#TEST
-	x = np.random.random((2,2))
-	print(x)
-	print(np.fft.fft2(x))
-	print(twoDDFT(x))
+	x = np.random.random((256,128))
+	print("x")
+	#print(x)
+	print("here1")
+	#print(np.fft.fft2(x))
+	print("here2")
+	#print(twoDFFTv2(x))
 	#END TEST
 	#--------------#
 	
+	correctfft = np.fft.fft2(resized)
+	twodfft = twoDFFTv2(resized)
+	
 	# A logarithmic colormap
 	plt.figure()
-#	plt.imshow(np.abs(np.fft.fft2(resized)), norm=LogNorm(vmin=5))
+	plt.imshow(np.abs(correctfft), norm=LogNorm(vmin=5))
 	plt.colorbar()
 	plt.title('Correct Fourier transform')
-#	plt.show()
+	
 	plt.figure()
-#	plt.imshow(np.abs(twoDDFT(resized)), norm=LogNorm(vmin=5))
+	plt.imshow(np.abs(twodfft), norm=LogNorm(vmin=5))
 	plt.colorbar()
 	plt.title('Our Fourier transform')
-#	plt.show()
+	plt.show()
+	plt.show()
 	cv2.waitKey(0)
 
 def mode_2(image):
@@ -125,31 +149,34 @@ def mode_3(image):
 	
 def mode_4(image):
 	print(image)
-	power = [5,6,7,8,9,10,11,12,13]
-	runtimeN = [0,0,0,0,0,0,0,0,0]
-	standdevN = [0,0,0,0,0,0,0,0,0] 
-	runtimeF = [0,0,0,0,0,0,0,0,0]
-	standdevF = [0,0,0,0,0,0,0,0,0] 
+	power = [5,6,7,8,9,10]
+	runtimeN = [0,0,0,0,0,0]
+	standdevN = [0,0,0,0,0,0] 
+	standerrorN = [0,0,0,0,0,0] 
+	runtimeF = [0,0,0,0,0,0]
+	standdevF = [0,0,0,0,0,0] 
+	standerrorF = [0,0,0,0,0,0] 
 	i=0
 	
 	while i < len(power):
 		j=0
-		timeN = [0,0,0,0,0,0,0,0,0,0] 
-		timeF = [0,0,0,0,0,0,0,0,0,0] 
+		#timeN = [0,0,0,0,0,0] 
+		#timeF = [0,0,0,0,0,0] 
+		timeN = [0, 0, 0] 
+		timeF = [0, 0, 0] 
 		
 		#run it 10 times
-		while j < 10:
-			x = np.random.random((power[i],power[i]))
-			
+		while j < len(timeN):
+			x = np.random.random((2**power[i],2**power[i]))
 			# naive run
 			startN = int(round(time.time() * 1000))
-			naive = np.fft.fft(x) #replace by our own algorithm
+			naive = np.fft.fft2(x) #replace by our own algorithm
 			endN = int(round(time.time() * 1000))
 			timeN[j] = endN-startN
 			
 			# fft run
 			startF = int(round(time.time() * 1000))
-			fft = np.fft.fft2(x) #replace by our own algorithm
+			fft = twoDFFTv2(x) #replace by our own algorithm
 			endF = int(round(time.time() * 1000))
 			timeF[j] = endF-startF
 			
@@ -159,12 +186,14 @@ def mode_4(image):
 		standdevN[i] = np.std(timeN)
 		runtimeF[i]= np.mean(timeF)
 		standdevF[i] = np.std(timeF)
+		print(runtimeF[i])
+		print(standdevF[i])
 		
 		i=i+1
 	
 	#plot graph, x = power, y = runtime, 2 lines = naive and fft
-	plt.errorbar(power, runtimeN, yerr=standdevN, xerr=standdevN,  marker='o', markerfacecolor='blue', markersize=5, color='skyblue', linewidth=2, label='naive')
-	plt.errorbar(power, runtimeF, yerr=standdevF, xerr=standdevF, marker='o', markerfacecolor='pink', markersize=5, color='black', linewidth=2, label='FFT')
+	plt.errorbar(power, runtimeN, yerr=standdevN, marker='o', markerfacecolor='blue', markersize=5, color='skyblue', linewidth=2, label='naive')
+	plt.errorbar(power, runtimeF, yerr=standdevF, marker='o', markerfacecolor='pink', markersize=4, color='grey', linewidth=2, label='FFT', capsize=4, ecolor = 'black', elinewidth=2)
 	plt.ylabel('Runtime (milliseconds)')
 	plt.xlabel('Power')
 	plt.title('Runtime of Naive vs FFT methods')
@@ -210,9 +239,4 @@ if __name__ == '__main__':
 		mode_4(image)
 	else:
 		print("Mode has to be between 1 and 4")
-		exit()
-
-
-	
-
-	
+		exit()	
