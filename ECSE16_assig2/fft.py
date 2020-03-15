@@ -135,6 +135,30 @@ def invtwoDFFT(x):
 
     return x
 
+def compression(image, perc):
+    twodfft = twoDFFTv2(image)
+    zeroes = (int) (image.shape[0] * image.shape[1] * perc / 100)
+    #zeros is the #coefficients we need to set to 0, rounding up
+    positions = [[(0.0 + 0j) for x in range(3)] for y in range(image.shape[0] * image.shape[1])]
+    #column 1 = number; column 2 = b, column 3 = a
+    n = 0
+
+    for a in range(twodfft.shape[1]):
+        for b in range(twodfft.shape[0]):
+            positions[n][0] = twodfft[b][a]
+            positions[n][1] = b
+            positions[n][2] = a
+            n = n + 1
+
+    #position now contains all the cell numbers + their array
+    n = n - 1
+    positions.sort(key=lambda x:x[0]) #sorting on numbers
+    for x in range(zeroes):
+        twodfft[positions[n][1]][positions[n][2]] = 0
+        n = n - 1
+    #replaces the zeroes highest frequencies by 0
+    return (invtwoDFFT(twodfft).real)
+
 def mode_1(image):
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
@@ -152,13 +176,13 @@ def mode_1(image):
 	
 	#--------------#
 	#TEST
-	x = np.random.random((256,128))
+	x = np.random.random((2,2))
 	print("x")
-	#print(x)
+	print(x)
 	print("here1")
-	#print(np.fft.fft2(x))
+	print(np.fft.fft2(x))
 	print("here2")
-	#print(twoDFFTv2(x))
+	print(twoDFFTv2(x))
 	#END TEST
 	#--------------#
 	
@@ -201,13 +225,14 @@ def mode_2(image):
 	#cv2.imshow("Image Resized", im)
     cv2.imshow("Image Resized", resized)
 
+    cv2.imshow("real lib", (invtwoDFFT(np.fft.fft2(resized))).real)
     #-----------------#
     #TEST
     x = np.random.random((2,2))
     #print("x")
-    #print(x)
-    #print(np.fft.ifft2(x))
-    #print(invtwoDFFT(x))
+    print(x)
+    print(np.fft.ifft2(x))
+    print(invtwoDFFT(x))
     #END TEST
     #-----------------#
 
@@ -220,18 +245,18 @@ def mode_2(image):
             while (y > 1):
                 y = y - 1
             #now y is btwn 0 and 1
-            if y > 0.35 and y < 0.65:
+   #         if y > 0.35 and y < 0.65:
             #if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-                twodfft[b][a] = 0
-            else:
-                count = count + 1
+   #             twodfft[b][a] = 0
+   #         else:
+   #             count = count + 1
     #we removed high frequencies and replaced them by 0
     #output to cmd line number of nonzeroes we used and fraction???
     print("number of non-zero entries we are using")
     print(count)
     print("fraction they represent on original fourrier coefficients")
     print(count / (twodfft.shape[1] * twodfft.shape[0]))
-    itwodfft = invtwoDFFT(twodfft)
+    i2dfft = invtwoDFFT(twodfft)
     correcti2dfft = np.fft.ifft2(twodfft)
 
     # A logarithmic colormap
@@ -239,7 +264,7 @@ def mode_2(image):
     axs[0].imshow(resized, cmap='gray')
     axs[0].set_title('Resized Image')
 
-    im2 = axs[1].imshow(itwodfft.real, cmap='gray')
+    im2 = axs[1].imshow(i2dfft.real, cmap='gray')
     axs[1].set_title('Our Denoised Image')
     #fig.colorbar(im2, ax=axs[1])
     plt.show()
@@ -261,8 +286,51 @@ def mode_2(image):
 
 
 def mode_3(image):
-	print(image)
-	
+    im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+    width = im.shape[1]
+    height = im.shape[0]
+	# calculating new sizes to be powers of 2
+    while np.log2(width)%1 != 0:
+        width = width+1		
+    while np.log2(height)%1 != 0:
+        height = height+1
+	#padding image with zeros
+    resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
+
+	#cv2.imshow("Image Resized", im)
+    cv2.imshow("Image Resized", resized)
+
+    comp1 = compression(resized, 10)
+    comp2 = compression(resized, 25)
+    comp3 = compression(resized, 50)
+    comp4 = compression(resized, 75)
+    comp5 = compression(resized, 95)
+
+    # A logarithmic colormap
+    fig, axs = plt.subplots(2, 3)
+    axs[0][0].imshow(resized, cmap='gray')
+    axs[0][0].set_title('0% Compression')
+
+    axs[0][1].imshow(comp1, cmap='gray')
+    axs[0][1].set_title('10% Compression')
+
+    axs[0][2].imshow(comp2, cmap='gray')
+    axs[0][2].set_title('25% Compression')
+
+    axs[1][0].imshow(comp3, cmap='gray')
+    axs[1][0].set_title('50% Compression')
+
+    axs[1][1].imshow(comp4, cmap='gray')
+    axs[1][1].set_title('75% Compression')
+
+    axs[1][2].imshow(resized, cmap='gray')
+    axs[1][2].set_title('95% Compression')
+
+    
+    plt.show()
+    cv2.waitKey(0)
+    
+
 def mode_4(image):
 	print(image)
 	power = [5,6,7,8,9,10]
