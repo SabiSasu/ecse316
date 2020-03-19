@@ -182,25 +182,36 @@ def mode_2(image):
 	twodfft = (twoDFFTv2(resized))
 	#print(twodfft)
 	count = 0
-	for a in range(twodfft.shape[1]):
-		for b in range(twodfft.shape[0]):
+	#scaled = np.interp(twodfft, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
+	#for a in range(twodfft.shape[1]):
+	#	for b in range(twodfft.shape[0]):
 			
-			y = abs(twodfft[b][a] / (np.pi * 2))
-			while (y > 1):
-				y = y - 1
+	#		y = (scaled[b][a])
+	#		print(y)
+			#while (y > 1):
+			#	y = y - 1
 			#now y is btwn 0 and 1
-			if y > 0.35 and y < 5.8:
-				if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-					twodfft[b][a] = 0+0j
-				else:
-					count = count + 1
+	#		if y > 0.35 and y < 5.8:
+				#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
+	#			twodfft[b][a] = 0+0j
+	#		else:
+	#			count = count + 1
 
+	#code taken start
+	keep_fraction = 0.2 #tweak
+	r, c = twodfft.shape
+	twodfft[int(r*keep_fraction):int(r*(1-keep_fraction))] = 0
+	twodfft[:, int(c*keep_fraction):int(c*(1-keep_fraction))] = 0
+	#code taken end
+	
+	count = np.count_nonzero(twodfft)
+	
 	#we removed high frequencies and replaced them by 0
 	#output to cmd line number of nonzeroes we used and fraction???
 	print("number of non-zero entries we are using")
 	print(count)
-	#print("fraction they represent on original fourrier coefficients")
-	#print(count / (twodfft.shape[1] * twodfft.shape[0]))
+	print("fraction they represent on original fourrier coefficients")
+	print(count / (twodfft.shape[1] * twodfft.shape[0]))
 	
 	
 	#i2dfft = np.real(invtwoDFFT(twoDFFTv2(resized)))
