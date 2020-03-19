@@ -101,12 +101,6 @@ def twoDFFTv2(x):
 	x = np.asarray(x, dtype=complex)
 	N = x.shape[0] #rows
 	M = x.shape[1] #columns
-	n = np.arange(N) #array from 0 to N-1
-	m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
-	k = m.reshape((M, 1))
-	l = n.reshape((1, N))
-#	T = np.exp(-2j * np.pi * k * m / M) #inner
-#	U = np.exp(-2j * np.pi * l * n / N) #outer
 
 	for i in range(N): #for each row
 		#x[i] = np.dot(U, FFT(x[i]))
