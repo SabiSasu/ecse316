@@ -182,26 +182,27 @@ def mode_2(image):
 	twodfft = (twoDFFTv2(resized))
 	#print(twodfft)
 	count = 0
-	#scaled = np.interp(twodfft, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
-	#for a in range(twodfft.shape[1]):
-	#	for b in range(twodfft.shape[0]):
+	scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
+	for a in range(twodfft.shape[1]):
+		for b in range(twodfft.shape[0]):
 			
-	#		y = (scaled[b][a])
-	#		print(y)
+			y = (scaled[b][a])
+			#print(y)
 			#while (y > 1):
 			#	y = y - 1
 			#now y is btwn 0 and 1
-	#		if y > 0.35 and y < 5.8:
-				#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-	#			twodfft[b][a] = 0+0j
+			#if y > (np.pi - 1) and y < (np.pi + 1):
+			if y > 1.064 and y < 1.067:
+	    		#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
+				twodfft[b][a] = 0+0j
 	#		else:
 	#			count = count + 1
 
 	#code taken start
-	keep_fraction = 0.2 #tweak
-	r, c = twodfft.shape
-	twodfft[int(r*keep_fraction):int(r*(1-keep_fraction))] = 0
-	twodfft[:, int(c*keep_fraction):int(c*(1-keep_fraction))] = 0
+	#keep_fraction = 0.2 #tweak
+	#r, c = twodfft.shape
+	#twodfft[int(r*keep_fraction):int(r*(1-keep_fraction))] = 0
+	#twodfft[:, int(c*keep_fraction):int(c*(1-keep_fraction))] = 0
 	#code taken end
 	
 	count = np.count_nonzero(twodfft)
