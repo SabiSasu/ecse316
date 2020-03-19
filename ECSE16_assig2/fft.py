@@ -80,12 +80,6 @@ def twoDFFTv2(x):
 	x = np.asarray(x, dtype=complex)
 	N = x.shape[0] #rows
 	M = x.shape[1] #columns
-	n = np.arange(N) #array from 0 to N-1
-	m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
-	k = m.reshape((M, 1))
-	l = n.reshape((1, N))
-	T = np.exp(-2j * np.pi * k * m / M) #inner
-	U = np.exp(-2j * np.pi * l * n / N) #outer
 
 	for i in range(N): #for each row
 		#x[i] = np.dot(U, FFT(x[i]))
@@ -155,22 +149,19 @@ def mode_3(image):
 	print(image)
 	
 def mode_4(image):
-	print(image)
 	power = [5,6,7,8,9,10]
 	runtimeN = [0,0,0,0,0,0]
 	standdevN = [0,0,0,0,0,0] 
-	standerrorN = [0,0,0,0,0,0] 
 	runtimeF = [0,0,0,0,0,0]
 	standdevF = [0,0,0,0,0,0] 
-	standerrorF = [0,0,0,0,0,0] 
 	i=0
 	
 	while i < len(power):
 		j=0
-		#timeN = [0,0,0,0,0,0] 
-		#timeF = [0,0,0,0,0,0] 
-		timeN = [0, 0, 0] 
-		timeF = [0, 0, 0] 
+		timeN = [0,0,0,0,0,0,0,0,0,0] 
+		timeF = [0,0,0,0,0,0,0,0,0,0] 
+		#timeN = [0, 0, 0] 
+		#timeF = [0, 0, 0] 
 		
 		#run it 10 times
 		while j < len(timeN):
@@ -190,9 +181,9 @@ def mode_4(image):
 			j=j+1
 		#compute run times
 		runtimeN[i]= np.mean(timeN)
-		standdevN[i] = np.std(timeN)
+		standdevN[i] = np.std(timeN)*2
 		runtimeF[i]= np.mean(timeF)
-		standdevF[i] = np.std(timeF)
+		standdevF[i] = np.std(timeF)*2
 		print(runtimeF[i])
 		print(standdevF[i])
 		
@@ -214,9 +205,7 @@ if __name__ == '__main__':
 	size = len(sys.argv)
 	if(n[0] != "fft.py"):
 		print("Command line synthax must have the form: python fft.py [-m mode] [-i image]")
-	print("Input: ", end='')
-	print(n)
-	
+
 	image = "moonlanding.png"
 	mode = 1
 	
