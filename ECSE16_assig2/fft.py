@@ -21,53 +21,8 @@ def invdft(x):
     n = np.arange(N)
     k = n.reshape((N,1))
     T = np.exp(2j * np.pi * k * n / N)
-    return ((np.dot(T, x)) / N)
+    return ((np.dot(T, x))/N)
 
-def twoDDFT(x):
-    x = np.asarray(x, dtype=complex)
-    N = x.shape[0] #rows
-    M = x.shape[1] #columns
-    n = np.arange(N) #array from 0 to N-1
-    m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
-    k = m.reshape((M, 1))
-    l = n.reshape((1, N))
-    T = np.exp(-2j * np.pi * k * m / M) #inner
-    U = np.exp(-2j * np.pi * l * n / N) #outer
-
-    #W = np.exp(-2j * np.pi * m / M) #inner
-    #Z = np.exp(-2j * np.pi * n / N) #outer
-    #coeffs = np.zeros((N, M))
-    #for a in range (N):
-     #   for b in range (M):
-    #        coeffs[a][b] = W * a * Z * b
-   # print(coeffs)
-   # newarr = [[0 for x in range(M)] for y in range(N)]
-    #print(l)
-    #print(n)
-   # print(m)
-   # print(M)
-   # print(k)
-    #print(U) 
-    print(T)
-    #print(np.matmul(T, U))
-   # print(x[0])
-    #print(x[:,0].reshape(M, 1))
-    for a in range(M): #for each column
-        # print(x[:,a])
-         x[:,a] = np.dot(T, x[:,a])
-       #  print(x)
-       # print(x[:,a])
-    for i in range(N): #for each row
-        x[i] = np.dot(U, x[i])
-       # print(x[i])
-      #  print(x)
-    # print(x)
-    
-#    for a in range(M):
-#        for b in range(N):
-#            x[a,b] = np.dot(U, x[:,b])*np.dot(T, x[a])
-
-    return x
 
 def FFT(x):
 	x = np.asarray(x, dtype=complex)
@@ -94,40 +49,32 @@ def invFFT(x):
     else:
         X_even = invFFT(x[::2])
         X_odd = invFFT(x[1::2])
-        factor = np.exp(-2j * np.pi * np.arange(N) / N)
+        factor = np.exp(2j * np.pi * np.arange(N) / N)
         return np.concatenate([X_even + factor[:int(N/2)] * X_odd, X_even + factor[int(N/2):] * X_odd])
 
 def twoDFFTv2(x):
 	x = np.asarray(x, dtype=complex)
+	
 	N = x.shape[0] #rows
 	M = x.shape[1] #columns
-
-	for i in range(N): #for each row
-		#x[i] = np.dot(U, FFT(x[i]))
-		x[i] = invFFT(x[i])
-	for a in range(M): #for each column
-		#x[:,a] = np.dot(T, FFT(x[:,a]))
-		x[:,a] = invFFT(x[:,a])
 	
+	for i in range(N): #for each row
+		x[i] = FFT(x[i])
+	for a in range(M): #for each column
+		x[:,a] = FFT(x[:,a])
 	return x
 
 def invtwoDFFT(x):
-    x = np.asarray(x, dtype=complex)
-    N = x.shape[0] #rows
-    M = x.shape[1] #columns
-    n = np.arange(N) #array from 0 to N-1
-    m = np.arange(M) #.reshape(M, 1) #array from 0 to M-1
-    k = m.reshape((M, 1))
-    l = n.reshape((1, N))
+	x = np.asarray(x, dtype=complex)
+	N = x.shape[0] #rows
+	M = x.shape[1] #columns
 
-    for i in range(N): #for each row
-		#x[i] = np.dot(U, FFT(x[i]))
-        x[i] = invFFT(x[i])
-    for a in range(M): #for each column
-		#x[:,a] = np.dot(T, FFT(x[:,a]))
-        x[:,a] = invFFT(x[:,a])
+	for a in range(M): #for each column
+		x[:,a] = invFFT(x[:,a])
+	for i in range(N): #for each row
+		x[i] = invFFT(x[i])	
 
-    return x
+	return x
 
 def compression(image, perc):
     twodfft = twoDFFTv2(image)
@@ -165,23 +112,27 @@ def mode_1(image):
 	#padding image with zeros
 	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
-	#cv2.imshow("Image Resized", im)
-	#cv2.imshow("Image Resized", resized)
-	
+
 	#--------------#
 	#TEST
-	x = np.random.random((2,2))
+	x = np.random.random((4,4))
 	print("x")
 	print(x)
 	print("here1")
-	print(np.fft.fft2(x))
+	#npx = np.fft.fft2(x)
+	npx = np.fft.ifft2(np.fft.fft2(x))
+	print(npx)
 	print("here2")
-	print(twoDFFTv2(x))
+	x2 = invtwoDFFT(np.fft.fft2(x))
+	#x2 = twoDFFTv2(x)
+	print(x2)
 	#END TEST
 	#--------------#
 	
-	correctfft = np.fft.fft2(resized)
-	twodfft = twoDFFTv2(resized)
+	#correctfft = np.fft.fft2(resized)
+	#twodfft = twoDFFTv2(resized)
+	correctfft = npx
+	twodfft = x2
 	
 	# A logarithmic colormap
 	fig, axs = plt.subplots(1, 2)
@@ -205,78 +156,68 @@ def mode_1(image):
 	cv2.waitKey(0)
 
 def mode_2(image):
-    im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
-    width = im.shape[1]
-    height = im.shape[0]
+	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+	width = im.shape[1]
+	height = im.shape[0]
 	# calculating new sizes to be powers of 2
-    while np.log2(width)%1 != 0:
-        width = width+1		
-    while np.log2(height)%1 != 0:
-        height = height+1
+	while np.log2(width)%1 != 0:
+		width = width+1		
+	while np.log2(height)%1 != 0:
+		height = height+1
 	#padding image with zeros
-    resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
+	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
-	#cv2.imshow("Image Resized", im)
-    cv2.imshow("Image Resized", resized)
+	#-----------------#
+	#TEST
+	x = np.random.random((2,2))
+	print("here1")
+	npx = np.fft.fft2(x)
+	print(npx)
+	print("here2")
+	x2 = twoDFFTv2(x)
+	print(x2)
+	#END TEST
+	#-----------------#
 
-    cv2.imshow("real lib", (invtwoDFFT(np.fft.fft2(resized))).real)
-    #-----------------#
-    #TEST
-    x = np.random.random((2,2))
-    #print("x")
-    print(x)
-    print(np.fft.ifft2(x))
-    print(invtwoDFFT(x))
-    #END TEST
-    #-----------------#
+	twodfft = (twoDFFTv2(resized))
+	#print(twodfft)
+	count = 0
+	for a in range(twodfft.shape[1]):
+		for b in range(twodfft.shape[0]):
+			
+			y = abs(twodfft[b][a] / (np.pi * 2))
+			while (y > 1):
+				y = y - 1
+			#now y is btwn 0 and 1
+			if y > 0.35 and y < 5.8:
+				if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
+					twodfft[b][a] = 0+0j
+				else:
+					count = count + 1
 
-    twodfft = twoDFFTv2(resized)
-    count = 0
-    for a in range(twodfft.shape[1]):
-        for b in range(twodfft.shape[0]):
-            #print(twodfft[b][a])
-            y = abs(twodfft[b][a] / (np.pi * 2))
-            while (y > 1):
-                y = y - 1
-            #now y is btwn 0 and 1
-   #         if y > 0.35 and y < 0.65:
-            #if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-   #             twodfft[b][a] = 0
-   #         else:
-   #             count = count + 1
-    #we removed high frequencies and replaced them by 0
-    #output to cmd line number of nonzeroes we used and fraction???
-    print("number of non-zero entries we are using")
-    print(count)
-    print("fraction they represent on original fourrier coefficients")
-    print(count / (twodfft.shape[1] * twodfft.shape[0]))
-    i2dfft = invtwoDFFT(twodfft)
-    correcti2dfft = np.fft.ifft2(twodfft)
+	#we removed high frequencies and replaced them by 0
+	#output to cmd line number of nonzeroes we used and fraction???
+	print("number of non-zero entries we are using")
+	print(count)
+	#print("fraction they represent on original fourrier coefficients")
+	#print(count / (twodfft.shape[1] * twodfft.shape[0]))
+	
+	
+	#i2dfft = np.real(invtwoDFFT(twoDFFTv2(resized)))
+	#correcti2dfft = np.real(np.fft.ifft2(np.fft.fft2(resized)))
+	i2dfft = np.real(invtwoDFFT(twodfft))
 
-    # A logarithmic colormap
-    fig, axs = plt.subplots(1, 2)
-    axs[0].imshow(resized, cmap='gray')
-    axs[0].set_title('Resized Image')
+	# A logarithmic colormap
+	fig, axs = plt.subplots(1, 2)
+	axs[0].imshow(resized, cmap='gray')
+	axs[0].set_title('Resized Image')
 
-    im2 = axs[1].imshow(i2dfft.real, cmap='gray')
-    axs[1].set_title('Our Denoised Image')
-    #fig.colorbar(im2, ax=axs[1])
-    plt.show()
-    cv2.waitKey(0)
+	axs[1].imshow(i2dfft, cmap='gray')
+	axs[1].set_title('Denoised Image (Our code)')
 
-    # A logarithmic colormap
-    #plt.figure()
-    #plt.imshow(np.abs(correcti2dfft), norm=LogNorm(vmin=5))
-    #plt.colorbar()
-    #plt.title('Correct Fourier transform')
-    
-    #plt.figure()
-    #plt.imshow(np.abs(itwodfft), norm=LogNorm(vmin=5))
-    #plt.colorbar()
-    #plt.title('Our Fourier transform')
-    #plt.show()
-    #plt.show()
-    #cv2.waitKey(0)
+
+	plt.show()
+	cv2.waitKey(0)
 
 
 def mode_3(image):
