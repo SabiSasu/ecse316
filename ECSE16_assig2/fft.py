@@ -76,17 +76,17 @@ def invtwoDFFT(x):
 
 	return x
 
-def compression(image, perc):
-    twodfft = twoDFFTv2(image)
-    zeroes = (int) (image.shape[0] * image.shape[1] * perc / 100)
+def compression(twodfft, scaled, perc):
+    
+    zeroes = (int) (twodfft.shape[0] * twodfft.shape[1] * perc / 100)
     #zeros is the #coefficients we need to set to 0, rounding up
-    positions = [[(0.0 + 0j) for x in range(3)] for y in range(image.shape[0] * image.shape[1])]
+    positions = [[(0.0 + 0j) for x in range(3)] for y in range(twodfft.shape[0] * twodfft.shape[1])]
     #column 1 = number; column 2 = b, column 3 = a
     n = 0
 
-    for a in range(twodfft.shape[1]):
-        for b in range(twodfft.shape[0]):
-            positions[n][0] = twodfft[b][a]
+    for a in range(scaled.shape[1]):
+        for b in range(scaled.shape[0]):
+            positions[n][0] = scaled[b][a]
             positions[n][1] = b
             positions[n][2] = a
             n = n + 1
@@ -98,7 +98,7 @@ def compression(image, perc):
         twodfft[positions[n][1]][positions[n][2]] = 0
         n = n - 1
     #replaces the zeroes highest frequencies by 0
-    return (invtwoDFFT(twodfft).real)
+    return (np.real(invtwoDFFT(twodfft)))
 
 def mode_1(image):
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
@@ -192,7 +192,7 @@ def mode_2(image):
 			#	y = y - 1
 			#now y is btwn 0 and 1
 			#if y > (np.pi - 1) and y < (np.pi + 1):
-			if y > 1.064 and y < 1.067:
+			if y > 1.064 and y < 1.067: #tweak
 	    		#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
 				twodfft[b][a] = 0+0j
 	#		else:
@@ -245,13 +245,15 @@ def mode_3(image):
     resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
 	#cv2.imshow("Image Resized", im)
-    cv2.imshow("Image Resized", resized)
+    #cv2.imshow("Image Resized", resized)
+    twodfft = twoDFFTv2(resized)
+    scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
 
-    comp1 = compression(resized, 10)
-    comp2 = compression(resized, 25)
-    comp3 = compression(resized, 50)
-    comp4 = compression(resized, 75)
-    comp5 = compression(resized, 95)
+    comp1 = compression(twodfft, scaled, 10)
+    comp2 = compression(twodfft, scaled, 25)
+    comp3 = compression(twodfft, scaled, 50)
+    comp4 = compression(twodfft, scaled, 75)
+    comp5 = compression(twodfft, scaled, 95)
 
     # A logarithmic colormap
     fig, axs = plt.subplots(2, 3)
