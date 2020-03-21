@@ -76,29 +76,68 @@ def invtwoDFFT(x):
 
 	return x
 
-def compression(twodfft, scaled, perc):
-    
-    zeroes = (int) (twodfft.shape[0] * twodfft.shape[1] * perc / 100)
-    #zeros is the #coefficients we need to set to 0, rounding up
-    positions = [[(0.0 + 0j) for x in range(3)] for y in range(twodfft.shape[0] * twodfft.shape[1])]
-    #column 1 = number; column 2 = b, column 3 = a
-    n = 0
+def compression(twodfft, perc):
+	twodfftcopy = np.copy(twodfft)
+	total = twodfftcopy.shape[0] * twodfftcopy.shape[1]
+	zeroes = (int) (total * perc / 100)
+	nonzeroes = total - zeroes
+	print("Amount of nonzero entries")
+	print(nonzeroes)
+	
+	highfreq = np.copy(twodfftcopy)
+	r, c = twodfftcopy.shape
+	
+	#choosing coefficient to delimit low/high freqs in rectangles
+	totalnonzeroes = nonzeroes/5
+	coeff = (total**0.5)/(totalnonzeroes**0.5)
+	zeroesR = int(round(r/coeff))
+	zeroesC = int(round(c/coeff))
+	print("rectangle sides")
+	print(zeroesR)
+	print(zeroesC)
 
-    for a in range(scaled.shape[1]):
-        for b in range(scaled.shape[0]):
-            positions[n][0] = scaled[b][a]
-            positions[n][1] = b
-            positions[n][2] = a
-            n = n + 1
-
-    #position now contains all the cell numbers + their array
-    n = n - 1
-    positions.sort(key=lambda x:x[0]) #sorting on numbers
-    for x in range(zeroes):
-        twodfft[positions[n][1]][positions[n][2]] = 0
-        n = n - 1
-    #replaces the zeroes highest frequencies by 0
-    return (np.real(invtwoDFFT(twodfft)))
+	#everything that is high freq is set to 0
+	twodfftcopy[zeroesR:r-zeroesR] = 0
+	twodfftcopy[:, zeroesC:c-zeroesC] = 0
+	print(np.count_nonzero(twodfftcopy))
+	
+	
+	#everything that is low freq (not the middle) is set to 0
+	rmid = int(r/2)
+	cmid = int(c/2)
+	zerosSqHalfR = int(zeroesR/2)
+	zerosSqHalfC = int(zeroesC/2)
+	highfreq[0:rmid-zerosSqHalfR] = 0
+	highfreq[rmid+zerosSqHalfR:r] = 0
+	highfreq[:,0:cmid-zerosSqHalfC] = 0
+	highfreq[:,cmid+zerosSqHalfC:c] = 0
+	print(np.count_nonzero(highfreq))
+	
+	
+	fig, axs = plt.subplots(1, 2)
+	im2 = axs[0].imshow(np.abs(twodfftcopy), norm=LogNorm(vmin=5))
+	axs[0].set_title('Our 2D Fast Fourier Transform')
+	fig.colorbar(im2, ax=axs[0])
+	im2 = axs[1].imshow(np.abs(highfreq), norm=LogNorm(vmin=5))
+	axs[1].set_title('Our 2D Fast Fourier Transform')
+	fig.colorbar(im2, ax=axs[1])
+	plt.show()
+	cv2.waitKey(0)
+	
+	#add high freq and low freq matrices
+	compressed = np.add(twodfftcopy, highfreq)
+	print("total non zero")
+	print(np.count_nonzero(compressed))
+	count = total-np.count_nonzero(compressed)
+	print("Actual percentage:")
+	print(perc)
+	print("Zero entries we are using:")
+	print(count)
+	print("Percentage they represent on original fourrier coefficients:")
+	print(count / total * 100)
+	print()
+	#replaces the zeroes highest frequencies by 0
+	return (np.real(invtwoDFFT(compressed)))
 
 def mode_1(image):
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
@@ -233,51 +272,49 @@ def mode_2(image):
 
 
 def mode_3(image):
-    im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
-    width = im.shape[1]
-    height = im.shape[0]
+	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+	width = im.shape[1]
+	height = im.shape[0]
 	# calculating new sizes to be powers of 2
-    while np.log2(width)%1 != 0:
-        width = width+1		
-    while np.log2(height)%1 != 0:
-        height = height+1
+	while np.log2(width)%1 != 0:
+		width = width+1		
+	while np.log2(height)%1 != 0:
+		height = height+1
 	#padding image with zeros
-    resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
+	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
-	#cv2.imshow("Image Resized", im)
-    #cv2.imshow("Image Resized", resized)
-    twodfft = twoDFFTv2(resized)
-    scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
+	twodfft = twoDFFTv2(resized)
+	#scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
 
-    comp1 = compression(twodfft, scaled, 10)
-    comp2 = compression(twodfft, scaled, 25)
-    comp3 = compression(twodfft, scaled, 50)
-    comp4 = compression(twodfft, scaled, 75)
-    comp5 = compression(twodfft, scaled, 95)
+	comp1 = compression(twodfft, 10)
+	comp2 = compression(twodfft, 25)
+	comp3 = compression(twodfft, 50)
+	comp4 = compression(twodfft, 75)
+	comp5 = compression(twodfft, 95)
 
-    # A logarithmic colormap
-    fig, axs = plt.subplots(2, 3)
-    axs[0][0].imshow(resized, cmap='gray')
-    axs[0][0].set_title('0% Compression')
+	# A logarithmic colormap
+	fig, axs = plt.subplots(2, 3)
+	axs[0][0].imshow(resized, cmap='gray')
+	axs[0][0].set_title('0% Compression')
 
-    axs[0][1].imshow(comp1, cmap='gray')
-    axs[0][1].set_title('10% Compression')
+	axs[0][1].imshow(comp1, cmap='gray')
+	axs[0][1].set_title('10% Compression')
 
-    axs[0][2].imshow(comp2, cmap='gray')
-    axs[0][2].set_title('25% Compression')
+	axs[0][2].imshow(comp2, cmap='gray')
+	axs[0][2].set_title('25% Compression')
 
-    axs[1][0].imshow(comp3, cmap='gray')
-    axs[1][0].set_title('50% Compression')
+	axs[1][0].imshow(comp3, cmap='gray')
+	axs[1][0].set_title('50% Compression')
 
-    axs[1][1].imshow(comp4, cmap='gray')
-    axs[1][1].set_title('75% Compression')
+	axs[1][1].imshow(comp4, cmap='gray')
+	axs[1][1].set_title('75% Compression')
 
-    axs[1][2].imshow(resized, cmap='gray')
-    axs[1][2].set_title('95% Compression')
+	axs[1][2].imshow(resized, cmap='gray')
+	axs[1][2].set_title('95% Compression')
 
-    
-    plt.show()
-    cv2.waitKey(0)
+
+	plt.show()
+	cv2.waitKey(0)
     
 
 def mode_4(image):
