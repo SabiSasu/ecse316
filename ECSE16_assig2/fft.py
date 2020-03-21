@@ -129,10 +129,10 @@ def mode_1(image):
 	#END TEST
 	#--------------#
 	
-	#correctfft = np.fft.fft2(resized)
-	#twodfft = twoDFFTv2(resized)
-	correctfft = npx
-	twodfft = x2
+	correctfft = np.fft.fft2(resized)
+	twodfft = twoDFFTv2(resized)
+	#correctfft = npx
+	#twodfft = x2
 	
 	# A logarithmic colormap
 	fig, axs = plt.subplots(1, 2)
@@ -182,38 +182,38 @@ def mode_2(image):
 	twodfft = (twoDFFTv2(resized))
 	#print(twodfft)
 	count = 0
-	scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
-	for a in range(twodfft.shape[1]):
-		for b in range(twodfft.shape[0]):
+	#scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
+	#for a in range(scaled.shape[1]):
+	#	for b in range(scaled.shape[0]):
 			
-			y = (scaled[b][a])
+	#		y = (scaled[b][a])
 			#print(y)
 			#while (y > 1):
 			#	y = y - 1
 			#now y is btwn 0 and 1
 			#if y > (np.pi - 1) and y < (np.pi + 1):
-			if y > 1.064 and y < 1.067: #tweak
+	#		if y > 3 and y < 1: #tweak
 	    		#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-				twodfft[b][a] = 0+0j
+	#			twodfft[b][a] = 0+0j
 	#		else:
 	#			count = count + 1
 
-	#code taken start
-	#keep_fraction = 0.2 #tweak
-	#r, c = twodfft.shape
-	#twodfft[int(r*keep_fraction):int(r*(1-keep_fraction))] = 0
-	#twodfft[:, int(c*keep_fraction):int(c*(1-keep_fraction))] = 0
-	#code taken end
+	
+	r, c = twodfft.shape
+	#choosing coefficient to delimit low/high freqs
+	arbCoeff = 0.3
+	#getting values where low frequencies start
+	xfreq = int((c/2) * arbCoeff)
+	yfreq = int((r/2) * arbCoeff)
+	#everything that is high freq is set to 0
+	twodfft[yfreq:r-yfreq] = 0
+	twodfft[:, xfreq:c-xfreq] = 0
 	
 	count = np.count_nonzero(twodfft)
-	
-	#we removed high frequencies and replaced them by 0
-	#output to cmd line number of nonzeroes we used and fraction???
-	print("number of non-zero entries we are using")
+	print("Non-zero entries we are using:")
 	print(count)
-	print("fraction they represent on original fourrier coefficients")
+	print("Fraction they represent on original fourrier coefficients:")
 	print(count / (twodfft.shape[1] * twodfft.shape[0]))
-	
 	
 	#i2dfft = np.real(invtwoDFFT(twoDFFTv2(resized)))
 	#correcti2dfft = np.real(np.fft.ifft2(np.fft.fft2(resized)))
