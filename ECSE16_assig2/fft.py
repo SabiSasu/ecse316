@@ -136,7 +136,20 @@ def compression(twodfft, perc):
 	print("Percentage they represent on original fourrier coefficients:")
 	print(count / total * 100)
 	print()
-	#replaces the zeroes highest frequencies by 0
+    rowcount = 0
+    csrindex = 0
+    csr = [[(0.0 + 0j) for x in range(np.count_nonzero(compressed))] for y in range(3)]
+    for a in range(compressed.shape[0]): #columns
+        for b in range(compressed.shape[1]): #rows
+            if compressed[a][b] != 0:
+                csr[csrindex][0] = compressed[a][b] #value
+                csr[csrindex][1] = a #column
+                csr[csrindex][2] = rowcount #row
+                csrindex = csrindex + 1
+        rowcount = csrindex + 1
+    print("csr matrix")
+    print(csr)
+    #replaces the zeroes highest frequencies by 0
 	return (np.real(invtwoDFFT(compressed)))
 
 def mode_1(image):
