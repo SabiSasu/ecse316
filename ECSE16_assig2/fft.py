@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 import cv2
 from matplotlib.colors import LogNorm
 import time
+from scipy import sparse
+from scipy.sparse import csr_matrix
 	
 def dft(x):
 	x = np.asarray(x, dtype=complex)
@@ -30,7 +32,7 @@ def FFT(x):
 
 	if N % 2 > 0:
 		raise ValueError("size of x must be a power of 2")
-	elif N <= 32: #tweek later
+	elif N <= 32:
 		return dft(x)
 	else:
 		X_even = FFT(x[::2])
@@ -44,7 +46,7 @@ def invFFT(x):
 
     if N % 2 > 0:  
         raise ValueError("size of x must be a power of 2")
-    elif N <= 32: #tweek later
+    elif N <= 32:
         return invdft(x)
     else:
         X_even = invFFT(x[::2])
@@ -52,7 +54,7 @@ def invFFT(x):
         factor = np.exp(2j * np.pi * np.arange(N) / N)
         return np.concatenate([X_even + factor[:int(N/2)] * X_odd, X_even + factor[int(N/2):] * X_odd])
 
-def twoDFFTv2(x):
+def twoDFFT(x):
 	x = np.asarray(x, dtype=complex)
 	
 	N = x.shape[0] #rows
@@ -62,6 +64,18 @@ def twoDFFTv2(x):
 		x[i] = FFT(x[i])
 	for a in range(M): #for each column
 		x[:,a] = FFT(x[:,a])
+	return x
+
+def twoDFTNaive(x):
+	x = np.asarray(x, dtype=complex)
+	
+	N = x.shape[0] #rows
+	M = x.shape[1] #columns
+	
+	for i in range(N): #for each row
+		x[i] = dft(x[i])
+	for a in range(M): #for each column
+		x[:,a] = dft(x[:,a])
 	return x
 
 def invtwoDFFT(x):
@@ -81,8 +95,6 @@ def compression(twodfft, perc):
 	total = twodfftcopy.shape[0] * twodfftcopy.shape[1]
 	zeroes = (int) (total * perc / 100)
 	nonzeroes = total - zeroes
-	print("Amount of nonzero entries")
-	print(nonzeroes)
 	
 	highfreq = np.copy(twodfftcopy)
 	r, c = twodfftcopy.shape
@@ -92,14 +104,10 @@ def compression(twodfft, perc):
 	coeff = (total**0.5)/(totalnonzeroes**0.5)
 	zeroesR = int(round(r/coeff))
 	zeroesC = int(round(c/coeff))
-	print("rectangle sides")
-	print(zeroesR)
-	print(zeroesC)
 
 	#everything that is high freq is set to 0
 	twodfftcopy[zeroesR:r-zeroesR] = 0
 	twodfftcopy[:, zeroesC:c-zeroesC] = 0
-	print(np.count_nonzero(twodfftcopy))
 	
 	
 	#everything that is low freq (not the middle) is set to 0
@@ -111,48 +119,24 @@ def compression(twodfft, perc):
 	highfreq[rmid+zerosSqHalfR:r] = 0
 	highfreq[:,0:cmid-zerosSqHalfC] = 0
 	highfreq[:,cmid+zerosSqHalfC:c] = 0
-	print(np.count_nonzero(highfreq))
-	
-	
-	fig, axs = plt.subplots(1, 2)
-	im2 = axs[0].imshow(np.abs(twodfftcopy), norm=LogNorm(vmin=5))
-	axs[0].set_title('Our 2D Fast Fourier Transform')
-	fig.colorbar(im2, ax=axs[0])
-	im2 = axs[1].imshow(np.abs(highfreq), norm=LogNorm(vmin=5))
-	axs[1].set_title('Our 2D Fast Fourier Transform')
-	fig.colorbar(im2, ax=axs[1])
-	plt.show()
-	cv2.waitKey(0)
 	
 	#add high freq and low freq matrices
 	compressed = np.add(twodfftcopy, highfreq)
-	print("total non zero")
-	print(np.count_nonzero(compressed))
-	count = total-np.count_nonzero(compressed)
-	print("Actual percentage:")
-	print(perc)
-	print("Zero entries we are using:")
-	print(count)
-	print("Percentage they represent on original fourrier coefficients:")
-	print(count / total * 100)
-	print()
-    rowcount = 0
-    csrindex = 0
-    csr = [[(0.0 + 0j) for x in range(np.count_nonzero(compressed))] for y in range(3)]
-    for a in range(compressed.shape[0]): #columns
-        for b in range(compressed.shape[1]): #rows
-            if compressed[a][b] != 0:
-                csr[csrindex][0] = compressed[a][b] #value
-                csr[csrindex][1] = a #column
-                csr[csrindex][2] = rowcount #row
-                csrindex = csrindex + 1
-        rowcount = csrindex + 1
-    print("csr matrix")
-    print(csr)
-    #replaces the zeroes highest frequencies by 0
+	count = np.count_nonzero(compressed)
+	print("Information for image compression at " +str(perc) + "%")
+	print("Non-zero entries we are using: " + str(count))
+	
+	name = "sparse_matrix_" + str(perc) + ".npz"
+	print("Saving sparse matrix file " + name)
+	array = csr_matrix(compressed)
+	#sparse.save_csr(name, sparse_m)
+	np.savez(name, data=array.data, indices=array.indices, indptr=array.indptr, shape=array.shape)
+			 
+	#replaces the zeroes highest frequencies by 0
 	return (np.real(invtwoDFFT(compressed)))
 
 def mode_1(image):
+	print("Mode 1 chosen, please wait....")
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
 	height = im.shape[0]
@@ -163,28 +147,9 @@ def mode_1(image):
 		height = height+1
 	#padding image with zeros
 	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
-
-
-	#--------------#
-	#TEST
-	x = np.random.random((4,4))
-	print("x")
-	print(x)
-	print("here1")
-	#npx = np.fft.fft2(x)
-	npx = np.fft.ifft2(np.fft.fft2(x))
-	print(npx)
-	print("here2")
-	x2 = invtwoDFFT(np.fft.fft2(x))
-	#x2 = twoDFFTv2(x)
-	print(x2)
-	#END TEST
-	#--------------#
 	
 	correctfft = np.fft.fft2(resized)
-	twodfft = twoDFFTv2(resized)
-	#correctfft = npx
-	#twodfft = x2
+	twodfft = twoDFFT(resized)
 	
 	# A logarithmic colormap
 	fig, axs = plt.subplots(1, 2)
@@ -208,6 +173,7 @@ def mode_1(image):
 	cv2.waitKey(0)
 
 def mode_2(image):
+	print("Mode 2 chosen, please wait....")
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
 	height = im.shape[0]
@@ -219,38 +185,8 @@ def mode_2(image):
 	#padding image with zeros
 	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
-	#-----------------#
-	#TEST
-	x = np.random.random((2,2))
-	print("here1")
-	npx = np.fft.fft2(x)
-	print(npx)
-	print("here2")
-	x2 = twoDFFTv2(x)
-	print(x2)
-	#END TEST
-	#-----------------#
 
-	twodfft = (twoDFFTv2(resized))
-	#print(twodfft)
-	count = 0
-	#scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
-	#for a in range(scaled.shape[1]):
-	#	for b in range(scaled.shape[0]):
-			
-	#		y = (scaled[b][a])
-			#print(y)
-			#while (y > 1):
-			#	y = y - 1
-			#now y is btwn 0 and 1
-			#if y > (np.pi - 1) and y < (np.pi + 1):
-	#		if y > 3 and y < 1: #tweak
-	    		#if twodfft[b][a].real >= 11 or twodfft[b][a].real <= -9: #tweak later
-	#			twodfft[b][a] = 0+0j
-	#		else:
-	#			count = count + 1
-
-	
+	twodfft = (twoDFFT(resized))
 	r, c = twodfft.shape
 	#choosing coefficient to delimit low/high freqs
 	arbCoeff = 0.3
@@ -262,13 +198,9 @@ def mode_2(image):
 	twodfft[:, xfreq:c-xfreq] = 0
 	
 	count = np.count_nonzero(twodfft)
-	print("Non-zero entries we are using:")
-	print(count)
-	print("Fraction they represent on original fourrier coefficients:")
-	print(count / (twodfft.shape[1] * twodfft.shape[0]))
+	print("Non-zero entries we are using: " + str(count))
+	print("Fraction they represent on original fourrier coefficients: " + str(count / (twodfft.shape[1] * twodfft.shape[0])))
 	
-	#i2dfft = np.real(invtwoDFFT(twoDFFTv2(resized)))
-	#correcti2dfft = np.real(np.fft.ifft2(np.fft.fft2(resized)))
 	i2dfft = np.real(invtwoDFFT(twodfft))
 
 	# A logarithmic colormap
@@ -285,6 +217,7 @@ def mode_2(image):
 
 
 def mode_3(image):
+	print("Mode 3 chosen, please wait....")
 	im = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
 	width = im.shape[1]
 	height = im.shape[0]
@@ -296,9 +229,9 @@ def mode_3(image):
 	#padding image with zeros
 	resized = np.pad(im, ((0,height-im.shape[0]),(0,width-im.shape[1])), mode='constant')
 
-	twodfft = twoDFFTv2(resized)
-	#scaled = np.interp(twodfft.real, (np.real(twodfft.min()), np.real(twodfft.max())), (0, np.pi * 2))
-
+	twodfft = twoDFFT(resized)
+	
+	comp0 = compression(twodfft, 0)
 	comp1 = compression(twodfft, 10)
 	comp2 = compression(twodfft, 25)
 	comp3 = compression(twodfft, 50)
@@ -331,32 +264,31 @@ def mode_3(image):
     
 
 def mode_4(image):
-	power = [5,6,7,8,9,10]
-	runtimeN = [0,0,0,0,0,0]
-	standdevN = [0,0,0,0,0,0] 
-	runtimeF = [0,0,0,0,0,0]
-	standdevF = [0,0,0,0,0,0] 
+	print("Mode 4 chosen, please wait.... it might take a while")
+	power = [5,6,7,8,9]
+	runtimeN = [0,0,0,0,0]
+	standdevN = [0,0,0,0,0] 
+	runtimeF = [0,0,0,0,0]
+	standdevF = [0,0,0,0,0] 
 	i=0
 	
 	while i < len(power):
 		j=0
-		timeN = [0,0,0,0,0,0,0,0,0,0] 
-		timeF = [0,0,0,0,0,0,0,0,0,0] 
-		#timeN = [0, 0, 0] 
-		#timeF = [0, 0, 0] 
-		
+		timeN = [0,0,0,0,0,0,0,0] 
+		timeF = [0,0,0,0,0,0,0,0] 
+
 		#run it 10 times
 		while j < len(timeN):
 			x = np.random.random((2**power[i],2**power[i]))
 			# naive run
 			startN = int(round(time.time() * 1000))
-			naive = np.fft.fft2(x) #replace by our own algorithm
+			naive = twoDFTNaive(x) #replace by our own algorithm
 			endN = int(round(time.time() * 1000))
 			timeN[j] = endN-startN
 			
 			# fft run
 			startF = int(round(time.time() * 1000))
-			fft = twoDFFTv2(x) #replace by our own algorithm
+			fft = twoDFFT(x) #replace by our own algorithm
 			endF = int(round(time.time() * 1000))
 			timeF[j] = endF-startF
 			
